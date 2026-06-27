@@ -4,6 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs"
+    "build": "node scripts/build.mjs",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:open:android": "npm run cap:sync && npx cap open android",
+    "cap:run:android": "npm run cap:sync && npx cap run android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1"
   }
 }

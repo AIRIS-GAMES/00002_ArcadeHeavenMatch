@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ArcadeHeaven Match</string>
+    <string name="title_activity_main">ArcadeHeaven Match</string>
+    <string name="package_name">com.airisgames.arcadeheavenmatch</string>
+    <string name="custom_url_scheme">com.airisgames.arcadeheavenmatch</string>
+</resources>
