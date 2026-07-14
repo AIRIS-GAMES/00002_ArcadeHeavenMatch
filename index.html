@@ -886,7 +886,28 @@ function stageClear(){
   document.getElementById("clear").classList.remove("hidden");
 }
 
+async function showGameOverAd(){
+  const AdMob = window.Capacitor?.Plugins?.AdMob;
+
+  if(!AdMob){
+    console.log("AdMobプラグインが見つかりません");
+    return;
+  }
+
+  try {
+    await AdMob.prepareInterstitial({
+      adId: "ca-app-pub-3169496152943405/4378236424",
+      isTesting: false
+    });
+
+    await AdMob.showInterstitial();
+  } catch(error){
+    console.error("全画面広告エラー:", error);
+  }
+}
+
 function gameOver(){
+  showGameOverAd();
   state="over";
   practiceMode = false;
   practiceStarUsed = false;
@@ -1417,5 +1438,33 @@ requestAnimationFrame(frame);
 if(location.search.indexOf("autostart")>=0) document.getElementById("btn-start").click();
 if(location.search.indexOf("horror")>=0){ misses=1; horror=true; }
 </script>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+  const AdMob = window.Capacitor?.Plugins?.AdMob;
+
+  if (!AdMob) {
+    console.log("AdMobプラグインが見つかりません");
+    return;
+  }
+
+  try {
+    await AdMob.initialize();
+
+    await AdMob.showBanner({
+      adId: "ca-app-pub-3169496152943405/6006723884",
+      adSize: "BANNER",
+      position: "BOTTOM_CENTER",
+      margin: 0,
+      isTesting: false
+    });
+
+    console.log("テストバナーを表示しました");
+  } catch (error) {
+    console.error("AdMobバナーエラー:", error);
+  }
+});
+</script>
+
 </body>
 </html>
