@@ -54,7 +54,7 @@
       grid-template-columns:50px 86px 50px 74px 38px;
       grid-template-areas:
         "stage score time life mute"
-        ". . . . pause";
+        ". . . shop pause";
       justify-content:center; align-items:start;
       padding:7px 4px 4px; gap:4px;
     }
@@ -70,6 +70,7 @@
     .stat .val { font-size:15.5px; line-height:1.18; white-space:nowrap; }
     .hud-btn { width:38px; height:38px; min-width:38px; font-size:16px; line-height:38px; }
     #btn-mute { grid-area:mute; }
+    #btn-shop-ingame { grid-area:shop; justify-self:end; }
     #btn-pause { grid-area:pause; }
   }
 
@@ -102,6 +103,10 @@
     animation:titleScreenIn .35s ease 2s forwards;
   }
   #title.title-ready .title-screen { pointer-events:auto; }
+  /* ゲームから戻ってきたとき: 起動スプラッシュを挟まず TAP TO START を即表示
+     （show-menu の規則より前に置くこと。両方付いた場合は show-menu 側を優先させる） */
+  #title.no-splash::before { animation:none; opacity:0; }
+  #title.no-splash .title-screen { animation:none; opacity:1; }
   .title-screen img.title-art {
     width:100%; height:100%; object-fit:cover; display:block;
   }
@@ -128,13 +133,15 @@
     transform:translateY(10px) scale(.98);
     transition:opacity .28s ease, transform .28s ease;
   }
-  #title.show-tutorial .title-screen {
+  #title.show-menu .title-screen {
     opacity:0;
     pointer-events:none;
     transition:opacity .25s ease;
     animation:none;
   }
-  #title.show-tutorial .panel {
+  /* メニュー表示中は起動スプラッシュ背景を再生させない */
+  #title.show-menu::before { animation:none; opacity:0; }
+  #title.show-menu .panel {
     opacity:1;
     pointer-events:auto;
     transform:translateY(0) scale(1);
@@ -158,6 +165,45 @@
   }
   .big-score { font-size:30px; color:#ff8fc0; font-weight:bold; }
   .best { font-size:13px; color:#b09ace; }
+  .coin-row {
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    font-size:24px; font-weight:bold; color:#e0a010;
+    text-shadow:0 2px 0 #fff;
+  }
+  .coin-row img { width:32px; height:32px; object-fit:contain; display:block; }
+  .coin-row.sm { font-size:18px; }
+  .coin-row.sm img { width:24px; height:24px; }
+  .shop-item {
+    width:100%; font-size:15px; padding:12px 14px;
+    line-height:1.3;
+  }
+  .shop-item:disabled {
+    filter:grayscale(.55); opacity:.55; cursor:default;
+    box-shadow:0 3px 0 rgba(180,140,200,.5);
+  }
+  .shop-item:disabled:active { transform:none; }
+  .login-days {
+    display:grid; grid-template-columns:repeat(7,1fr); gap:4px; width:100%;
+  }
+  .login-day {
+    aspect-ratio:1; display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:bold;
+    border-radius:8px; border:2px solid #ffd2ea; color:#b08bc9;
+    background:rgba(255,255,255,.7);
+  }
+  .login-day.claimed { background:#ffd2ea; color:#fff; border-color:#ff8fc0; }
+  .login-day.today {
+    background:linear-gradient(180deg,#ffe375,#ffb82e);
+    color:#7a4a00; border-color:#e8a300;
+    transform:scale(1.14);
+    box-shadow:0 3px 8px rgba(230,170,40,.42);
+  }
+  #btn-continue { line-height:1.2; padding-top:10px; padding-bottom:10px; }
+  #btn-continue small {
+    display:block;
+    font-size:13px; font-weight:bold;
+    opacity:.9; margin-top:2px;
+  }
   #over-score {
     width:100%;
     white-space:nowrap;
@@ -246,6 +292,13 @@
     border:1px solid rgba(255,255,255,.35);
   }
   .privacy-banner button:active { transform:translateY(2px); box-shadow:none; }
+  #audio-test-badge {
+    position:fixed; left:8px; bottom:8px; z-index:20;
+    padding:5px 8px; border-radius:6px;
+    background:rgba(20,18,34,.78); color:#fff;
+    font-size:11px; font-weight:bold; pointer-events:none;
+  }
+  #audio-test-badge.hidden { display:none; }
   @keyframes titleSplashOut { to{ opacity:0; } }
   @keyframes titleScreenIn { to{ opacity:1; } }
   @keyframes charabounce { 0%,100%{transform:translateY(0) rotate(-3deg)} 50%{transform:translateY(-10px) rotate(3deg)} }
@@ -262,6 +315,7 @@
     <div class="stat"><div class="label">じかん</div><div class="val" id="hud-time">60</div></div>
     <div class="stat"><div class="label">ライフ</div><div class="val" id="hud-lives">♥♥♥♥♥</div></div>
     <button id="btn-mute" class="hud-btn" type="button" aria-label="音のオン・オフ">🔊</button>
+    <button id="btn-shop-ingame" class="hud-btn" type="button" aria-label="ショップ">🛒</button>
     <button id="btn-pause" class="hud-btn" type="button" aria-label="一時停止">Ⅱ</button>
   </div>
 
@@ -286,7 +340,36 @@
     </div>
     <div class="panel">
       <div class="best" id="title-best"></div>
-      <button id="btn-start">はじめる</button>
+      <div class="coin-row sm"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="title-coin">0</span></div>
+      <div class="menu-actions">
+        <button id="btn-new-game">はじめから</button>
+        <button id="btn-continue">つづきから</button>
+        <button id="btn-shop" class="secondary-btn">SHOP</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="login-bonus" class="overlay hidden">
+    <div class="panel">
+      <h2>ログインボーナス！</h2>
+      <div class="login-days" id="login-days"></div>
+      <div class="sub" id="login-streak"></div>
+      <div class="coin-row"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="login-amount">0</span></div>
+      <div class="best">ぜんぶで <span id="login-total">0</span> コイン</div>
+      <button id="btn-login-claim">うけとる</button>
+    </div>
+  </div>
+
+  <div id="shop" class="overlay hidden">
+    <div class="panel">
+      <h2>SHOP</h2>
+      <div class="coin-row sm"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="shop-coin">0</span></div>
+      <div class="menu-actions">
+        <button id="btn-buy-time" class="shop-item" type="button"></button>
+        <button id="btn-buy-life" class="shop-item" type="button"></button>
+      </div>
+      <div class="sub" id="shop-status"></div>
+      <button id="btn-shop-back" class="secondary-btn">もどる</button>
     </div>
   </div>
 
@@ -295,6 +378,8 @@
       <h2>ステージクリア！</h2>
       <canvas id="clear-chara" class="chara-pop" width="320" height="320" style="width:180px;height:180px;display:none;"></canvas>
       <div class="big-score" id="clear-score"></div>
+      <div class="coin-row"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="clear-coin"></span></div>
+      <div class="best" id="clear-coin-total"></div>
       <button id="btn-next">つぎへすすむ</button>
     </div>
   </div>
@@ -305,7 +390,10 @@
       <div class="sub">もくひょうにとどかなかったよ</div>
       <div class="big-score" id="over-score"></div>
       <div class="best" id="over-best"></div>
-      <button id="btn-retry">もういちど</button>
+      <div class="menu-actions">
+        <button id="btn-retry">もういちど</button>
+        <button id="btn-over-menu" class="secondary-btn">メニューへ</button>
+      </div>
     </div>
   </div>
 
@@ -314,7 +402,20 @@
       <h2>いちじていし</h2>
       <div class="menu-actions">
         <button id="btn-resume">つづける</button>
-        <button id="btn-title-back" class="secondary-btn">タイトルにもどる</button>
+        <button id="btn-title-back" class="secondary-btn">タイトルに戻る</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ingame-shop" class="overlay hidden">
+    <div class="panel">
+      <h2>SHOP</h2>
+      <div class="sub">いますぐつかえるよ</div>
+      <div class="coin-row sm"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="ingame-coin">0</span></div>
+      <div class="menu-actions">
+        <button id="btn-ingame-time" class="shop-item" type="button"></button>
+        <button id="btn-ingame-life" class="shop-item" type="button"></button>
+        <button id="btn-ingame-back" class="secondary-btn">ゲームにもどる</button>
       </div>
     </div>
   </div>
@@ -328,12 +429,13 @@
   </div>
 
   <div id="privacy-banner" class="privacy-banner hidden">
-    <span>AIRIS GAMESは、サービス向上・広告配信のためGoogle Analytics・AdSenseを使用します。同意すると解析・広告Cookieが有効になります。</span>
+    <span>AIRIS GAMESは、ゲーム改善のためGameAnalyticsでプレイ状況を分析し、広告配信にAdMobを使用します。同意しない場合、解析データは送信されません。</span>
     <div class="privacy-actions">
       <button id="btn-privacy-accept" type="button">同意する</button>
       <button id="btn-privacy-decline" class="decline" type="button">同意しない</button>
     </div>
   </div>
+  <div id="audio-test-badge" class="hidden"></div>
 
 <script>
 "use strict";
@@ -373,19 +475,40 @@ resize();
 
 //================ Sound ================
 let AC = null;
+let sfxGain = null;
+let sfxLimiter = null;
 const bgm = document.getElementById("bgm");
+const TEST_NO_BGM = /(?:[?&])(nobgm|bgmoff)=1(?:&|$)/.test(location.search);
+const TEST_NO_SFX = /(?:[?&])(nosfx|sfxoff)=1(?:&|$)/.test(location.search);
+const audioTestBadge = document.getElementById("audio-test-badge");
+if(audioTestBadge && (TEST_NO_BGM || TEST_NO_SFX)){
+  audioTestBadge.textContent = TEST_NO_BGM ? "TEST: BGM OFF" : "TEST: SFX OFF";
+  audioTestBadge.classList.remove("hidden");
+}
 let muted = localStorage.getItem("ohanapon-muted")==="1";
-let bgmVolume = Math.min(1, Math.max(0, +(localStorage.getItem("ohanapon-bgm-volume")||0.28)));
+const AUDIO_BALANCE_KEY = "ohanapon-audio-balance";
+const BGM_DEFAULT_VOLUME = 0.18;
+const SFX_MASTER_VOLUME = 0.95;
+let bgmVolume = Math.min(1, Math.max(0, +(localStorage.getItem("ohanapon-bgm-volume")||BGM_DEFAULT_VOLUME)));
+if(localStorage.getItem(AUDIO_BALANCE_KEY)!=="3"){
+  bgmVolume = Math.min(bgmVolume, BGM_DEFAULT_VOLUME);
+  localStorage.setItem("ohanapon-bgm-volume", String(bgmVolume));
+  localStorage.setItem(AUDIO_BALANCE_KEY, "3");
+}
+function setBgmElementVolume(){
+  if(bgm) bgm.volume = (muted || TEST_NO_BGM) ? 0 : Math.min(1, bgmVolume);
+}
 function syncVolumeUI(){
   const slider=document.getElementById("bgm-volume");
   const label=document.getElementById("volume-value");
   const pct=Math.round(bgmVolume*100);
   if(slider) slider.value = String(pct);
   if(label) label.textContent = pct+"%";
-  if(bgm) bgm.volume = bgmVolume;
+  setBgmElementVolume();
 }
 function applyMuted(){
-  if(bgm) bgm.muted = muted;
+  if(bgm) bgm.muted = muted || TEST_NO_BGM;
+  if(sfxGain) sfxGain.gain.value = (muted || TEST_NO_SFX) ? 0 : SFX_MASTER_VOLUME;
   const b=document.getElementById("btn-mute");
   if(b) b.textContent = muted ? "🔇" : "🔊";
   const mb=document.getElementById("btn-volume-mute");
@@ -409,10 +532,28 @@ function toggleMute(){
   if(muted) pauseBgm();
   else if(state!=="title" && state!=="over" && state!=="paused") playBgm();
 }
-function audio(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC&&AC.state==="suspended") AC.resume(); }
+function audio(){
+  if(!AC){
+    try{
+      AC = new (window.AudioContext||window.webkitAudioContext)({ latencyHint:"interactive" });
+      sfxGain = AC.createGain();
+      sfxLimiter = AC.createDynamicsCompressor();
+      sfxLimiter.threshold.value = -12;
+      sfxLimiter.knee.value = 10;
+      sfxLimiter.ratio.value = 8;
+      sfxLimiter.attack.value = 0.003;
+      sfxLimiter.release.value = 0.16;
+      sfxGain.gain.value = muted ? 0 : SFX_MASTER_VOLUME;
+      sfxGain.connect(sfxLimiter);
+      sfxLimiter.connect(AC.destination);
+    }catch(e){}
+  }
+  if(AC&&AC.state==="suspended") AC.resume().catch(()=>{});
+}
 function playBgm(){
-  if(!bgm || muted) return;
-  bgm.volume = bgmVolume;
+  if(!bgm || muted || TEST_NO_BGM) return;
+  audio();
+  setBgmElementVolume();
   bgm.play().catch(()=>{});
 }
 function pauseBgm(){
@@ -424,32 +565,105 @@ function stopBgm(){
   bgm.currentTime = 0;
 }
 function tone(freq, dur, type, vol, when){
-  if(!AC || muted) return;
+  if(muted || TEST_NO_SFX) return;
+  audio();
+  if(!AC || !sfxGain) return;
   const t = AC.currentTime + (when||0);
   const o = AC.createOscillator(), g = AC.createGain();
   o.type = type||"sine"; o.frequency.value = freq;
-  g.gain.setValueAtTime(vol||0.15, t);
+  g.gain.setValueAtTime(0.001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.001, vol||0.15), t+0.012);
   g.gain.exponentialRampToValueAtTime(0.001, t+dur);
-  o.connect(g); g.connect(AC.destination);
+  o.connect(g); g.connect(sfxGain);
   o.start(t); o.stop(t+dur);
 }
 const PENTA = [523, 587, 659, 784, 880, 1047, 1175, 1319];
-function sndSwap(){ tone(330,.08,"triangle",.08); }
-function sndDeny(){ tone(180,.12,"square",.06); }
+function sndSwap(){ tone(440,.08,"triangle",.18); tone(660,.06,"sine",.08,.025); }
+function sndDeny(){ tone(180,.12,"triangle",.12); }
 function sndClear(combo){
   const i = Math.min(combo-1, 5);
-  tone(PENTA[i],.18,"sine",.16); tone(PENTA[i+2],.22,"sine",.1,.05);
+  tone(PENTA[i],.18,"sine",.22); tone(PENTA[i+2],.22,"sine",.14,.05);
 }
-function sndBell(){ tone(1568,.4,"triangle",.14); tone(2093,.5,"triangle",.1,.06); }
-function sndClearStage(){ [0,2,4,5].forEach((n,i)=>tone(PENTA[n],.3,"sine",.14,i*.12)); }
-function sndLose(){ tone(392,.25,"sine",.12); tone(311,.35,"sine",.12,.2); }
-function sndHorror(){ tone(72,.7,"sawtooth",.13); tone(67,.7,"sawtooth",.13,.02); tone(45,.9,"sine",.18,.05); }
+function sndBell(){ tone(1568,.34,"triangle",.24); tone(2093,.38,"sine",.16,.06); }
+function sndClearStage(){ [0,2,4,5].forEach((n,i)=>tone(PENTA[n],.3,"sine",.19,i*.12)); }
+function sndLose(){ tone(392,.25,"sine",.16); tone(311,.35,"sine",.16,.2); }
+function sndHorror(){
+  // スマホ画面録画では低周波の長い音が「ぶおおん」と潰れやすいので、短い通知音にする。
+  tone(330,.12,"triangle",.12);
+  tone(247,.16,"sine",.10,.06);
+}
+["pointerdown","touchend","keydown"].forEach(ev=>{
+  window.addEventListener(ev, audio, { passive:true });
+});
+["visibilitychange","pageshow","focus"].forEach(ev=>{
+  window.addEventListener(ev, ()=>{
+    if(!muted){
+      audio();
+      if(state!=="title" && state!=="over" && state!=="paused") playBgm();
+    }
+  });
+});
 
 //================ Game State ================
 let board = [];     // board[r][c] = {t, offY, vy, scale, pop} | null
 let state = "title"; // title, idle, swap, swapback, clear, fall, practiceDone, paused, over
 let level=1, score=0, target=0, timeLeft=0, lives=5, combo=1;
 let best = +(localStorage.getItem("ohanapon-best")||0);
+let coins = +(localStorage.getItem("ohanapon-coins")||0);
+// コイン単位を10倍にした際、既存セーブを一度だけ移行する
+const COIN_SCALE_KEY = "ohanapon-coin-scale";
+if(localStorage.getItem(COIN_SCALE_KEY) !== "10"){
+  coins *= 10;
+  localStorage.setItem("ohanapon-coins", String(coins));
+  localStorage.setItem(COIN_SCALE_KEY, "10");
+}
+// ステージクリア報酬: スコア10点ごとに1コイン（最低10枚）
+function coinReward(s){ return Math.max(10, Math.floor(s/10)); }
+function addCoins(n){
+  coins += n;
+  localStorage.setItem("ohanapon-coins", String(coins));
+}
+// 数値を0からシャッと数え上げる（クリア画面の獲得コイン用）
+let countUpRAF = 0;
+let clearPanelTimer = 0;
+function animateCount(el, to, dur, prefix, from){
+  if(!el) return;
+  if(countUpRAF) cancelAnimationFrame(countUpRAF);
+  const pre = prefix || "";
+  const start = from || 0;
+  const t0 = performance.now();
+  function step(now){
+    const k = Math.min(1, (now - t0) / dur);
+    const eased = 1 - Math.pow(1 - k, 3); // 最初速く、最後ゆっくり
+    el.textContent = pre + Math.round(start + (to - start) * eased);
+    if(k < 1) countUpRAF = requestAnimationFrame(step);
+    else { el.textContent = pre + to; countUpRAF = 0; }
+  }
+  countUpRAF = requestAnimationFrame(step);
+}
+function spendCoins(n){
+  if(coins < n) return false;
+  coins -= n;
+  localStorage.setItem("ohanapon-coins", String(coins));
+  return true;
+}
+// 進行度: クリア済みの最高ステージ。「つづきから」は progress+1 から。
+let progress = +(localStorage.getItem("ohanapon-progress")||0);
+function saveProgress(lv){
+  if(lv > progress){
+    progress = lv;
+    localStorage.setItem("ohanapon-progress", String(progress));
+  }
+}
+// SHOPブースト: 次に開始するステージ1回だけ有効
+const PRICE_TIME = 300, PRICE_LIFE = 400;
+const BOOST_TIME_SEC = 15, BOOST_LIFE_NUM = 2;
+let boostTime = localStorage.getItem("ohanapon-boost-time")==="1";
+let boostLife = localStorage.getItem("ohanapon-boost-life")==="1";
+function saveBoosts(){
+  localStorage.setItem("ohanapon-boost-time", boostTime?"1":"0");
+  localStorage.setItem("ohanapon-boost-life", boostLife?"1":"0");
+}
 let swapInfo = null;   // {r1,c1,r2,c2,t}
 let pausedState = null;
 let clearTimer = 0, clearSet = null, bellSpawns = null;
@@ -834,6 +1048,11 @@ function startLevel(){
   target = 800 + level*400;
   timeLeft = 60;
   lives = 5;
+  // 購入済みブーストを1回だけ適用して消費
+  let usedBoost = false;
+  if(boostTime){ timeLeft += BOOST_TIME_SEC; boostTime = false; usedBoost = true; }
+  if(boostLife){ lives += BOOST_LIFE_NUM; boostLife = false; usedBoost = true; }
+  if(usedBoost) saveBoosts();
   score = 0;
   combo = 1;
   pausedState = null;
@@ -843,6 +1062,8 @@ function startLevel(){
   buildBoard();
   updateHUD();
   state="idle"; idleTime=0; hint=null;
+  if(usedBoost) floats.push({x:W/2,y:H*0.3,txt:"ブースト！",life:1.4,color:"#e0a010",size:28});
+  gaEvent("addProgressionEvent", "Start", gaStageId());
 }
 
 function practiceComplete(runs){
@@ -873,8 +1094,19 @@ function practiceComplete(runs){
 
 function stageClear(){
   state="over";
+  gaEvent("addProgressionEvent", "Complete", gaStageId());
+  gaEvent("addDesignEvent", "stage:clear:score", score);
   sndClearStage();
   document.getElementById("clear-score").textContent = score+" てん！";
+  saveProgress(level);
+  const earned = coinReward(score);
+  addCoins(earned);
+  gaEvent("addResourceEvent", "Source", "coin", earned, "stage_clear", gaStageId());
+  // 先に盤面上でコインを弾けさせ、少し遅らせてクリア画面を出す
+  spawnCoinBurst(earned);
+  sndCoinRush(earned);
+  document.getElementById("clear-coin").textContent = "+0";
+  document.getElementById("clear-coin-total").textContent = "ぜんぶで "+coins+" コイン";
   // Show a random character on the clear screen.
   const cc = document.getElementById("clear-chara");
   const g = cc.getContext("2d");
@@ -883,7 +1115,11 @@ function stageClear(){
   const chara = imgs.length ? imgs[(Math.random()*imgs.length)|0] : null;
   if(chara) drawContainedImage(g,chara,cc.width/2,cc.height/2,cc.width*0.92,cc.height*0.92,1,false);
   cc.style.display = "block";
-  document.getElementById("clear").classList.remove("hidden");
+  clearTimeout(clearPanelTimer);
+  clearPanelTimer = setTimeout(()=>{
+    document.getElementById("clear").classList.remove("hidden");
+    animateCount(document.getElementById("clear-coin"), earned, 850, "+");
+  }, 650);
 }
 
 async function showGameOverAd(){
@@ -907,6 +1143,8 @@ async function showGameOverAd(){
 }
 
 function gameOver(){
+  gaEvent("addProgressionEvent", "Fail", gaStageId());
+  gaEvent("addDesignEvent", "stage:fail:score", score);
   showGameOverAd();
   state="over";
   practiceMode = false;
@@ -940,6 +1178,14 @@ function resumeGame(){
   document.getElementById("pause").classList.add("hidden");
 }
 
+function showTapToStartTitle(){
+  const title = document.getElementById("title");
+  // メニューではなく TAP TO START 画面に戻す（スプラッシュは再生しない）
+  title.classList.remove("hidden","show-menu");
+  title.classList.add("title-ready","no-splash");
+  refreshMenu();
+}
+
 function returnToTitle(){
   audio();
   stopBgm();
@@ -956,23 +1202,212 @@ function returnToTitle(){
   document.getElementById("clear").classList.add("hidden");
   document.getElementById("gameover").classList.add("hidden");
   document.getElementById("practice-clear").classList.add("hidden");
-  const title = document.getElementById("title");
-  title.classList.remove("hidden","show-tutorial");
-  title.classList.add("title-ready");
+  clearTimeout(clearPanelTimer);
+  clearTimeout(loginCloseTimer);
+  if(countUpRAF){ cancelAnimationFrame(countUpRAF); countUpRAF = 0; }
+  document.getElementById("login-bonus").classList.add("hidden");
+  document.getElementById("shop").classList.add("hidden");
+  document.getElementById("ingame-shop").classList.add("hidden");
+  showTapToStartTitle();
+}
+
+//================ Login Bonus ================
+const LOGIN_REWARDS = [50, 80, 100, 120, 150, 200, 400]; // 7日周期
+let loginLast = localStorage.getItem("ohanapon-login-last") || "";
+let loginStreak = +(localStorage.getItem("ohanapon-login-streak")||0);
+let pendingLoginDay = 0;   // 受取待ちの日数（1〜7）。0なら受取対象なし
+let loginCloseTimer = 0;
+
+function dateKey(d){
+  return d.getFullYear() + "-" +
+         String(d.getMonth()+1).padStart(2,"0") + "-" +
+         String(d.getDate()).padStart(2,"0");
+}
+function todayKey(){ return dateKey(new Date()); }
+function yesterdayKey(){ const d = new Date(); d.setDate(d.getDate()-1); return dateKey(d); }
+
+// 受け取れる場合のみ true を返し、pendingLoginDay を設定する
+function checkLoginBonus(){
+  const today = todayKey();
+  if(loginLast === today) return false;          // 今日は受取済み
+  if(loginLast > today){                          // 日付が巻き戻された → 不正とみなす
+    loginStreak = 0;
+    loginLast = today;
+    localStorage.setItem("ohanapon-login-last", loginLast);
+    localStorage.setItem("ohanapon-login-streak", "0");
+    return false;
+  }
+  // 前日に受け取っていれば継続、そうでなければ1日めにリセット
+  pendingLoginDay = (loginLast === yesterdayKey()) ? (loginStreak % 7) + 1 : 1;
+  return true;
+}
+function renderLoginDays(day){
+  const wrap = document.getElementById("login-days");
+  wrap.innerHTML = "";
+  for(let i=1;i<=7;i++){
+    const cell = document.createElement("div");
+    cell.className = "login-day" + (i<day ? " claimed" : "") + (i===day ? " today" : "");
+    cell.textContent = i===day ? "★" : (i<day ? "✓" : String(i));
+    wrap.appendChild(cell);
+  }
+}
+function showLoginBonus(){
+  const day = pendingLoginDay;
+  renderLoginDays(day);
+  document.getElementById("login-streak").textContent = day + "日め れんぞく";
+  document.getElementById("login-amount").textContent = LOGIN_REWARDS[day-1];
+  document.getElementById("login-total").textContent = coins;
+  const btn = document.getElementById("btn-login-claim");
+  btn.disabled = false;
+  document.getElementById("login-bonus").classList.remove("hidden");
+}
+function claimLoginBonus(){
+  if(!pendingLoginDay) return;
+  const day = pendingLoginDay;
+  const amount = LOGIN_REWARDS[day-1];
+  const before = coins;
+  addCoins(amount);
+  loginStreak = day;
+  loginLast = todayKey();
+  localStorage.setItem("ohanapon-login-streak", String(loginStreak));
+  localStorage.setItem("ohanapon-login-last", loginLast);
+  gaEvent("addResourceEvent","Source","coin",amount,"login_bonus","day"+day);
+  pendingLoginDay = 0;
+  sndCoinRush(amount);
+  animateCount(document.getElementById("login-total"), coins, 800, "", before);
+  refreshMenu();
+}
+document.getElementById("btn-login-claim").addEventListener("click", ()=>{
+  audio();
+  const btn = document.getElementById("btn-login-claim");
+  if(btn.disabled) return;
+  btn.disabled = true;
+  claimLoginBonus();
+  clearTimeout(loginCloseTimer);
+  loginCloseTimer = setTimeout(()=>{
+    document.getElementById("login-bonus").classList.add("hidden");
+    document.getElementById("title").classList.add("show-menu");
+  }, 1400);
+});
+
+//================ Menu / Shop ================
+function refreshMenu(){
+  document.getElementById("title-best").textContent = best>0 ? "ベストスコア: "+best : "";
+  document.getElementById("title-coin").textContent = coins;
+  const cont = document.getElementById("btn-continue");
+  if(progress > 0){
+    cont.style.display = "";
+    cont.innerHTML = "つづきから<small>ステージ "+(progress+1)+"</small>";
+  } else {
+    cont.style.display = "none";
+  }
+}
+function refreshShop(){
+  document.getElementById("shop-coin").textContent = coins;
+  const bt = document.getElementById("btn-buy-time");
+  const bl = document.getElementById("btn-buy-life");
+  bt.textContent = boostTime ? "⏱ じかん+"+BOOST_TIME_SEC+"びょう（じゅんびOK）"
+                             : "⏱ じかん+"+BOOST_TIME_SEC+"びょう　"+PRICE_TIME+"コイン";
+  bl.textContent = boostLife ? "♥ ライフ+"+BOOST_LIFE_NUM+"（じゅんびOK）"
+                             : "♥ ライフ+"+BOOST_LIFE_NUM+"　"+PRICE_LIFE+"コイン";
+  bt.disabled = boostTime || coins < PRICE_TIME;
+  bl.disabled = boostLife || coins < PRICE_LIFE;
+  document.getElementById("shop-status").textContent =
+    (boostTime || boostLife) ? "つぎのステージでつかえるよ！" : "つぎのステージで1かいだけつかえるよ";
+}
+function buyBoost(kind){
+  const isTime = kind === "time";
+  if(isTime ? boostTime : boostLife) return;
+  const price = isTime ? PRICE_TIME : PRICE_LIFE;
+  if(!spendCoins(price)) return;
+  if(isTime) boostTime = true; else boostLife = true;
+  saveBoosts();
+  gaEvent("addResourceEvent","Sink","coin",price, isTime?"boost_time":"boost_life", "shop");
+  sndBell();
+  refreshShop();
+  refreshMenu();
 }
 
 document.getElementById("btn-title-play").addEventListener("click", ()=>{
   audio();
-  document.getElementById("title").classList.add("show-tutorial");
+  refreshMenu();
+  // 今日まだ受け取っていなければログインボーナスを先に表示する
+  if(checkLoginBonus()) showLoginBonus();
+  else document.getElementById("title").classList.add("show-menu");
 });
-document.getElementById("btn-start").addEventListener("click", ()=>{
+document.getElementById("btn-new-game").addEventListener("click", ()=>{
   audio();
   hideVolumePanel();
   playBgm();
+  gaEvent("addDesignEvent","menu:new_game");
   document.getElementById("title").classList.add("hidden");
   document.getElementById("hud").style.display="flex";
   startPractice();
 });
+document.getElementById("btn-continue").addEventListener("click", ()=>{
+  audio();
+  hideVolumePanel();
+  playBgm();
+  gaEvent("addDesignEvent","menu:continue", progress+1);
+  document.getElementById("title").classList.add("hidden");
+  document.getElementById("hud").style.display="flex";
+  level = progress + 1;
+  startLevel();
+});
+document.getElementById("btn-shop").addEventListener("click", ()=>{
+  audio();
+  refreshShop();
+  document.getElementById("shop").classList.remove("hidden");
+});
+document.getElementById("btn-shop-back").addEventListener("click", ()=>{
+  audio();
+  document.getElementById("shop").classList.add("hidden");
+});
+document.getElementById("btn-buy-time").addEventListener("click", ()=>{ audio(); buyBoost("time"); });
+document.getElementById("btn-buy-life").addEventListener("click", ()=>{ audio(); buyBoost("life"); });
+
+// プレイ中SHOP: 購入したその場で即適用する
+function refreshIngameShop(){
+  document.getElementById("ingame-coin").textContent = coins;
+  const bt = document.getElementById("btn-ingame-time");
+  const bl = document.getElementById("btn-ingame-life");
+  bt.textContent = "⏱ じかん+"+BOOST_TIME_SEC+"びょう　"+PRICE_TIME+"コイン";
+  bl.textContent = "♥ ライフ+"+BOOST_LIFE_NUM+"　"+PRICE_LIFE+"コイン";
+  bt.disabled = coins < PRICE_TIME;
+  bl.disabled = coins < PRICE_LIFE;
+}
+function buyIngame(kind){
+  const isTime = kind === "time";
+  const price = isTime ? PRICE_TIME : PRICE_LIFE;
+  if(!spendCoins(price)) return;
+  if(isTime) timeLeft += BOOST_TIME_SEC; else lives += BOOST_LIFE_NUM;
+  gaEvent("addResourceEvent","Sink","coin",price, isTime?"boost_time":"boost_life", "ingame");
+  sndBell();
+  updateHUD();
+  refreshIngameShop();
+  refreshMenu();
+}
+// SHOPを開いている間は時間が減らないよう一時停止する
+function openIngameShop(){
+  if(state==="title" || state==="over" || state==="practiceDone") return;
+  audio();
+  hideVolumePanel();
+  if(state !== "paused"){
+    pausedState = state;
+    state = "paused";
+    pauseBgm();
+  }
+  refreshIngameShop();
+  document.getElementById("ingame-shop").classList.remove("hidden");
+}
+function closeIngameShop(){
+  document.getElementById("ingame-shop").classList.add("hidden");
+  resumeGame();
+}
+document.getElementById("btn-shop-ingame").addEventListener("click", openIngameShop);
+document.getElementById("btn-ingame-back").addEventListener("click", closeIngameShop);
+document.getElementById("btn-ingame-time").addEventListener("click", ()=>{ audio(); buyIngame("time"); });
+document.getElementById("btn-ingame-life").addEventListener("click", ()=>{ audio(); buyIngame("life"); });
 document.getElementById("btn-practice-start").addEventListener("click", ()=>{
   audio();
   hideVolumePanel();
@@ -990,7 +1425,11 @@ document.getElementById("btn-retry").addEventListener("click", ()=>{
   hideVolumePanel();
   playBgm();
   document.getElementById("gameover").classList.add("hidden");
-  level=1; startLevel();
+  startLevel(); // 同じステージを再挑戦（levelは維持）
+});
+document.getElementById("btn-over-menu").addEventListener("click", ()=>{
+  document.getElementById("gameover").classList.add("hidden");
+  returnToTitle();
 });
 document.getElementById("btn-pause").addEventListener("click", pauseGame);
 document.getElementById("btn-resume").addEventListener("click", resumeGame);
@@ -1003,18 +1442,50 @@ document.getElementById("bgm-volume").addEventListener("input", e=>{
   syncVolumeUI();
 });
 applyMuted();
-const tb=document.getElementById("title-best");
+refreshMenu();
 setTimeout(()=>document.getElementById("title").classList.add("title-ready"), 2000);
+//================ GameAnalytics ================
+const GA_GAME_KEY   = "70bc48224f5273e09113f1767610f4e9";
+const GA_SECRET_KEY = "2f878b1d85cf1525c9ee5094af2837ad917dfd3a";
+const GA_BUILD = "1.0.0";
+let gaLoaded = false;
+// SDK未ロード/同意なしのときは何もしない安全ラッパー
+function gaEvent(){
+  if(!gaLoaded || typeof window.GameAnalytics !== "function") return;
+  try { window.GameAnalytics.apply(null, arguments); } catch(e){}
+}
+function gaStageId(){ return "stage" + String(level).padStart(2,"0"); }
+function loadGameAnalytics(){
+  if(gaLoaded) return;
+  gaLoaded = true;
+  // コマンドキュー: ロード完了前の呼び出しはバッファされる
+  window.GameAnalytics = window.GameAnalytics || function(){
+    (window.GameAnalytics.q = window.GameAnalytics.q || []).push(arguments);
+  };
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://unpkg.com/gameanalytics/dist/GameAnalytics.min.js";
+  s.onerror = () => { gaLoaded = false; };
+  document.head.appendChild(s);
+  gaEvent("configureBuild", GA_BUILD);
+  // 通貨・アイテム種別は initialize より前に登録する必要がある
+  gaEvent("configureAvailableResourceCurrencies", ["coin"]);
+  gaEvent("configureAvailableResourceItemTypes", ["stage_clear","boost_time","boost_life"]);
+  gaEvent("initialize", GA_GAME_KEY, GA_SECRET_KEY);
+}
+
 const privacyBanner = document.getElementById("privacy-banner");
 const PRIVACY_KEY = "airis-privacy-choice";
 function setPrivacyChoice(choice){
   localStorage.setItem(PRIVACY_KEY, choice);
   privacyBanner.classList.add("hidden");
+  if(choice==="accepted") loadGameAnalytics();
 }
 if(!localStorage.getItem(PRIVACY_KEY)) privacyBanner.classList.remove("hidden");
+// 同意済みのユーザーのみ計測を開始する
+if(localStorage.getItem(PRIVACY_KEY)==="accepted") loadGameAnalytics();
 document.getElementById("btn-privacy-accept").addEventListener("click", ()=>setPrivacyChoice("accepted"));
 document.getElementById("btn-privacy-decline").addEventListener("click", ()=>setPrivacyChoice("declined"));
-if(best>0) tb.textContent = "ベストスコア: "+best;
 
 //================ Input ================
 let touchStart=null;
@@ -1049,6 +1520,35 @@ cv.addEventListener("pointermove", e=>{
 cv.addEventListener("pointerup", ()=>{ touchStart=null; });
 
 //================ Particles ================
+// クリア時のコイン弾け演出用（Canvas描画に使う画像）
+const coinImg = typeof Image !== "undefined" ? new Image() : null;
+if(coinImg) coinImg.src = "Asset/cosmo-coin.png";
+function spawnCoinBurst(amount){
+  const n = Math.min(26, 8 + Math.floor(amount/12));
+  const cx = bx + cs*COLS/2, cy = by + cs*ROWS*0.45;
+  for(let i=0;i<n;i++){
+    const a = -Math.PI/2 + (Math.random()-0.5)*2.3;
+    const sp = 280 + Math.random()*320;
+    particles.push({
+      x: cx + (Math.random()-0.5)*cs*2.2,
+      y: cy + (Math.random()-0.5)*cs*0.8,
+      vx: Math.cos(a)*sp, vy: Math.sin(a)*sp,
+      life: 1.0 + Math.random()*0.7,
+      coin: true, col:"#ffd34d",
+      r: cs*0.2 + Math.random()*cs*0.12,
+      rot: Math.random()*Math.PI*2,
+      vrot: (Math.random()-0.5)*11
+    });
+  }
+}
+// 獲得量に応じてコイン音を短い間隔で連打する
+function sndCoinRush(amount){
+  const n = Math.min(10, 5 + Math.floor(amount/45));
+  for(let i=0;i<n;i++){
+    tone(1040 + i*60, .075, "triangle", .12, i*.05);
+    tone(1560 + i*82, .045, "sine", .07, i*.05 + .014);
+  }
+}
 function spawnParticles(x,y,type){
   const col = type===BELL? "#ffd34d" : PAL[type].petal;
   for(let i=0;i<7;i++){
@@ -1292,6 +1792,7 @@ function update(dt){
   for(let i=particles.length-1;i>=0;i--){
     const p=particles[i];
     p.x+=p.vx*dt; p.y+=p.vy*dt; p.vy+=600*dt; p.life-=dt;
+    if(p.vrot) p.rot = (p.rot||0) + p.vrot*dt;
     if(p.life<=0) particles.splice(i,1);
   }
   for(let i=floats.length-1;i>=0;i--){
@@ -1399,6 +1900,15 @@ function render(){
   for(const p of particles){
     ctx.globalAlpha = Math.min(1,p.life*2.2);
     ctx.fillStyle = p.col;
+    if(p.coin && imgReady(coinImg)){
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot||0);
+      const s = p.r*2;
+      ctx.drawImage(coinImg, -s/2, -s/2, s, s);
+      ctx.restore();
+      continue;
+    }
     if(p.heart){
       ctx.save(); ctx.translate(p.x,p.y); ctx.scale(p.r/4,p.r/4);
       ctx.beginPath();
@@ -1435,7 +1945,7 @@ function render(){
 requestAnimationFrame(frame);
 
 // Debug: ?autostart skips the title, &horror forces horror mode.
-if(location.search.indexOf("autostart")>=0) document.getElementById("btn-start").click();
+if(location.search.indexOf("autostart")>=0) document.getElementById("btn-new-game").click();
 if(location.search.indexOf("horror")>=0){ misses=1; horror=true; }
 </script>
 
