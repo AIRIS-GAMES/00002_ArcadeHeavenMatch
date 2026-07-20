@@ -478,12 +478,20 @@ let AC = null;
 let sfxGain = null;
 let sfxLimiter = null;
 const bgm = document.getElementById("bgm");
-const TEST_NO_BGM = /(?:[?&])(nobgm|bgmoff)=1(?:&|$)/.test(location.search);
-const TEST_NO_SFX = /(?:[?&])(nosfx|sfxoff)=1(?:&|$)/.test(location.search);
+const AUDIO_TEST_MODE = window.__AUDIO_TEST_MODE || "";
+const TEST_NO_BGM = AUDIO_TEST_MODE==="nobgm" || /(?:[?&#/])(nobgm|bgmoff|bgm-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
+const TEST_NO_SFX = AUDIO_TEST_MODE==="nosfx" || /(?:[?&#/])(nosfx|sfxoff|sfx-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
 const audioTestBadge = document.getElementById("audio-test-badge");
 if(audioTestBadge && (TEST_NO_BGM || TEST_NO_SFX)){
   audioTestBadge.textContent = TEST_NO_BGM ? "TEST: BGM OFF" : "TEST: SFX OFF";
   audioTestBadge.classList.remove("hidden");
+}
+if(TEST_NO_BGM && bgm){
+  bgm.pause();
+  bgm.muted = true;
+  bgm.volume = 0;
+  bgm.removeAttribute("src");
+  bgm.load();
 }
 let muted = localStorage.getItem("ohanapon-muted")==="1";
 const AUDIO_BALANCE_KEY = "ohanapon-audio-balance";
@@ -533,6 +541,7 @@ function toggleMute(){
   else if(state!=="title" && state!=="over" && state!=="paused") playBgm();
 }
 function audio(){
+  if(TEST_NO_SFX) return;
   if(!AC){
     try{
       AC = new (window.AudioContext||window.webkitAudioContext)({ latencyHint:"interactive" });
@@ -543,7 +552,7 @@ function audio(){
       sfxLimiter.ratio.value = 8;
       sfxLimiter.attack.value = 0.003;
       sfxLimiter.release.value = 0.16;
-      sfxGain.gain.value = muted ? 0 : SFX_MASTER_VOLUME;
+      sfxGain.gain.value = (muted || TEST_NO_SFX) ? 0 : SFX_MASTER_VOLUME;
       sfxGain.connect(sfxLimiter);
       sfxLimiter.connect(AC.destination);
     }catch(e){}
@@ -562,7 +571,7 @@ function pauseBgm(){
 function stopBgm(){
   if(!bgm) return;
   bgm.pause();
-  bgm.currentTime = 0;
+  if(bgm.src) bgm.currentTime = 0;
 }
 function tone(freq, dur, type, vol, when){
   if(muted || TEST_NO_SFX) return;
