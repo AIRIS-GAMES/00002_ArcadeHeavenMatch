@@ -110,8 +110,11 @@
   .title-screen img.title-art {
     width:100%; height:100%; object-fit:cover; display:block;
   }
+  /* --ad-banner-h は AdMobバナーが実際に表示されたときだけJSから設定される
+     （Web版は広告が無いので 0 のまま） */
+  :root { --ad-banner-h: 0px; }
   .title-play {
-    position:absolute; left:50%; bottom:5.5%;
+    position:absolute; left:50%; bottom:calc(5.5% + var(--ad-banner-h));
     width:min(62vw,380px); aspect-ratio:976/360;
     transform:translateX(-50%);
     padding:0; border:0; border-radius:999px; overflow:visible;
@@ -182,6 +185,32 @@
     box-shadow:0 3px 0 rgba(180,140,200,.5);
   }
   .shop-item:disabled:active { transform:none; }
+  .promo-banner {
+    width:100%; display:flex; align-items:center; gap:10px;
+    padding:10px 12px; border:none; border-radius:16px;
+    background:linear-gradient(180deg,#3b2a5c,#2a1e44);
+    box-shadow:0 4px 12px rgba(60,40,110,.3);
+    cursor:pointer; text-align:left;
+    transition:opacity .18s ease, transform .08s;
+  }
+  .promo-banner:active { transform:translateY(2px); box-shadow:0 1px 4px rgba(60,40,110,.3); }
+  .promo-banner.fading { opacity:0; }
+  .promo-icon {
+    width:46px; height:46px; border-radius:11px; flex:0 0 auto;
+    object-fit:cover; background:rgba(255,255,255,.15);
+  }
+  .promo-text { flex:1; min-width:0; }
+  .promo-text > span { display:block; }
+  .promo-caption { font-size:10px; color:#c9b5ff; line-height:1.3; }
+  .promo-title {
+    font-size:14px; font-weight:bold; color:#fff; line-height:1.25;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .promo-cta { font-size:11px; color:#ffd35e; font-weight:bold; }
+  .promo-chevron { color:rgba(255,255,255,.6); font-size:18px; flex:0 0 auto; }
+  .promo-dots { display:flex; justify-content:center; gap:5px; margin-top:-4px; }
+  .promo-dot { width:6px; height:6px; border-radius:50%; background:rgba(155,111,201,.35); }
+  .promo-dot.on { background:#9b6fc9; }
   .login-days {
     display:grid; grid-template-columns:repeat(7,1fr); gap:4px; width:100%;
   }
@@ -339,6 +368,16 @@
         <button id="btn-continue">つづきから</button>
         <button id="btn-shop" class="secondary-btn">SHOP</button>
       </div>
+      <button id="promo-banner" class="promo-banner" type="button">
+        <img id="promo-icon" class="promo-icon" src="" alt="">
+        <span class="promo-text">
+          <span class="promo-caption" id="promo-caption"></span>
+          <span class="promo-title" id="promo-title"></span>
+          <span class="promo-cta">App Storeで見る</span>
+        </span>
+        <span class="promo-chevron">›</span>
+      </button>
+      <div class="promo-dots" id="promo-dots"></div>
     </div>
   </div>
 
@@ -1225,6 +1264,77 @@ function returnToTitle(){
   showTapToStartTitle();
 }
 
+//================ Promo Banner ================
+// アイコンはAppleの配信URLを直接参照する（ローカル素材不要）
+const PROMO_APPS = [
+  {
+    id: "6789935783",
+    title: "コスミー MOGU MOGU PANIC",
+    caption: "このキャラのパズルゲーム",
+    icon: "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/ba/5b/56/ba5b56bc-e134-d397-a057-1fdcd6cad6e6/AppIcon-0-0-1x_U007epad-0-1-85-220.png/256x256bb.jpg",
+    url: "https://apps.apple.com/jp/app/id6789935783"
+  },
+  {
+    id: "6790154239",
+    title: "Cosmii Arcade",
+    caption: "ミニゲームがいっぱい",
+    icon: "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/41/a7/1e/41a71edd-d8a5-f75a-7b55-d6fcbf5f15c7/AppIcon-0-0-1x_U007epad-0-1-85-220.png/256x256bb.jpg",
+    url: "https://apps.apple.com/jp/app/id6790154239"
+  }
+];
+const PROMO_INTERVAL = 4500;
+let promoIndex = 0, promoTimer = 0, promoFadeTimer = 0;
+
+function renderPromo(){
+  const app = PROMO_APPS[promoIndex];
+  if(!app) return;
+  const icon = document.getElementById("promo-icon");
+  icon.src = app.icon;
+  icon.onerror = () => { icon.style.visibility = "hidden"; };
+  icon.style.visibility = "";
+  document.getElementById("promo-caption").textContent = app.caption;
+  document.getElementById("promo-title").textContent = app.title;
+  const dots = document.getElementById("promo-dots");
+  dots.innerHTML = "";
+  PROMO_APPS.forEach((_,i)=>{
+    const d = document.createElement("span");
+    d.className = "promo-dot" + (i===promoIndex ? " on" : "");
+    dots.appendChild(d);
+  });
+}
+function showPromo(next){
+  const el = document.getElementById("promo-banner");
+  el.classList.add("fading");
+  clearTimeout(promoFadeTimer);
+  promoFadeTimer = setTimeout(()=>{
+    promoIndex = next;
+    renderPromo();
+    el.classList.remove("fading");
+  }, 180);
+}
+function startPromoRotation(){
+  if(PROMO_APPS.length < 2 || promoTimer) return;
+  promoTimer = setInterval(()=>{
+    showPromo((promoIndex + 1) % PROMO_APPS.length);
+  }, PROMO_INTERVAL);
+}
+// WebView(Capacitor)とWeb版の両方で外部リンクを開けるようにする
+function openExternal(url){
+  const B = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
+  if(B && B.open){ B.open({ url }); return; }
+  const w = window.open(url, "_blank", "noopener");
+  if(!w) location.href = url;   // ポップアップ抑止やWebViewでの失敗に備える
+}
+document.getElementById("promo-banner").addEventListener("click", ()=>{
+  const app = PROMO_APPS[promoIndex];
+  if(!app) return;
+  audio();
+  gaEvent("addDesignEvent", "promo:click:" + app.id);
+  openExternal(app.url);
+});
+renderPromo();
+startPromoRotation();
+
 //================ Login Bonus ================
 const LOGIN_REWARDS = [50, 80, 100, 120, 150, 200, 400]; // 7日周期
 let loginLast = localStorage.getItem("ohanapon-login-last") || "";
@@ -1982,6 +2092,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       margin: 0,
       isTesting: false
     });
+
+    // バナーの高さ分だけ画面下部のUI（TAP TO START）を押し上げる
+    document.documentElement.style.setProperty("--ad-banner-h", "62px");
 
     console.log("テストバナーを表示しました");
   } catch (error) {
