@@ -292,13 +292,6 @@
     border:1px solid rgba(255,255,255,.35);
   }
   .privacy-banner button:active { transform:translateY(2px); box-shadow:none; }
-  #audio-test-badge {
-    position:fixed; left:8px; bottom:8px; z-index:20;
-    padding:5px 8px; border-radius:6px;
-    background:rgba(20,18,34,.78); color:#fff;
-    font-size:11px; font-weight:bold; pointer-events:none;
-  }
-  #audio-test-badge.hidden { display:none; }
   @keyframes titleSplashOut { to{ opacity:0; } }
   @keyframes titleScreenIn { to{ opacity:1; } }
   @keyframes charabounce { 0%,100%{transform:translateY(0) rotate(-3deg)} 50%{transform:translateY(-10px) rotate(3deg)} }
@@ -435,7 +428,6 @@
       <button id="btn-privacy-decline" class="decline" type="button">同意しない</button>
     </div>
   </div>
-  <div id="audio-test-badge" class="hidden"></div>
 
 <script>
 "use strict";
@@ -483,22 +475,6 @@ let bgmHighpass = null;
 let bgmLowpass = null;
 let bgmGain = null;
 const bgm = document.getElementById("bgm");
-const AUDIO_TEST_MODE = window.__AUDIO_TEST_MODE || "";
-const TEST_SILENT = AUDIO_TEST_MODE==="silent" || /(?:[?&#/])(silent|all-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
-const TEST_NO_BGM = TEST_SILENT || AUDIO_TEST_MODE==="nobgm" || /(?:[?&#/])(nobgm|bgmoff|bgm-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
-const TEST_NO_SFX = TEST_SILENT || AUDIO_TEST_MODE==="nosfx" || /(?:[?&#/])(nosfx|sfxoff|sfx-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
-const audioTestBadge = document.getElementById("audio-test-badge");
-if(audioTestBadge && (TEST_NO_BGM || TEST_NO_SFX)){
-  audioTestBadge.textContent = TEST_SILENT ? "TEST: ALL AUDIO OFF" : (TEST_NO_BGM ? "TEST: BGM OFF" : "TEST: SFX OFF");
-  audioTestBadge.classList.remove("hidden");
-}
-if(TEST_NO_BGM && bgm){
-  bgm.pause();
-  bgm.muted = true;
-  bgm.volume = 0;
-  bgm.removeAttribute("src");
-  bgm.load();
-}
 let muted = localStorage.getItem("ohanapon-muted")==="1";
 const AUDIO_BALANCE_KEY = "ohanapon-audio-balance";
 const BGM_DEFAULT_VOLUME = 0.18;
@@ -510,8 +486,8 @@ if(localStorage.getItem(AUDIO_BALANCE_KEY)!=="3"){
   localStorage.setItem(AUDIO_BALANCE_KEY, "3");
 }
 function setBgmElementVolume(){
-  if(bgm) bgm.volume = TEST_NO_BGM ? 0 : (bgmSource ? 1 : Math.min(0.12, bgmVolume));
-  if(bgmGain) bgmGain.gain.value = (muted || TEST_NO_BGM) ? 0 : Math.min(0.22, bgmVolume);
+  if(bgm) bgm.volume = bgmSource ? 1 : Math.min(0.12, bgmVolume);
+  if(bgmGain) bgmGain.gain.value = muted ? 0 : Math.min(0.22, bgmVolume);
 }
 function syncVolumeUI(){
   const slider=document.getElementById("bgm-volume");
@@ -522,10 +498,10 @@ function syncVolumeUI(){
   setBgmElementVolume();
 }
 function applyMuted(){
-  if(bgm) bgm.muted = TEST_NO_BGM || (!bgmSource && muted);
+  if(bgm) bgm.muted = !bgmSource && muted;
   if(masterGain) masterGain.gain.value = muted ? 0 : 0.82;
-  if(bgmGain) bgmGain.gain.value = (muted || TEST_NO_BGM) ? 0 : Math.min(0.22, bgmVolume);
-  if(sfxGain) sfxGain.gain.value = (muted || TEST_NO_SFX) ? 0 : SFX_MASTER_VOLUME;
+  if(bgmGain) bgmGain.gain.value = muted ? 0 : Math.min(0.22, bgmVolume);
+  if(sfxGain) sfxGain.gain.value = muted ? 0 : SFX_MASTER_VOLUME;
   const b=document.getElementById("btn-mute");
   if(b) b.textContent = muted ? "🔇" : "🔊";
   const mb=document.getElementById("btn-volume-mute");
@@ -550,7 +526,6 @@ function toggleMute(){
   else if(state!=="title" && state!=="over" && state!=="paused") playBgm();
 }
 function audio(){
-  if(TEST_SILENT) return;
   if(!AC){
     try{
       AC = new (window.AudioContext||window.webkitAudioContext)({ latencyHint:"interactive" });
@@ -563,9 +538,9 @@ function audio(){
       masterLimiter.attack.value = 0.006;
       masterLimiter.release.value = 0.18;
       masterGain.gain.value = muted ? 0 : 0.82;
-      sfxGain.gain.value = (muted || TEST_NO_SFX) ? 0 : SFX_MASTER_VOLUME;
+      sfxGain.gain.value = muted ? 0 : SFX_MASTER_VOLUME;
       sfxGain.connect(masterGain);
-      if(bgm && !TEST_NO_BGM){
+      if(bgm){
         bgmSource = AC.createMediaElementSource(bgm);
         bgmHighpass = AC.createBiquadFilter();
         bgmLowpass = AC.createBiquadFilter();
@@ -576,7 +551,7 @@ function audio(){
         bgmLowpass.type = "lowpass";
         bgmLowpass.frequency.value = 7600;
         bgmLowpass.Q.value = 0.7;
-        bgmGain.gain.value = (muted || TEST_NO_BGM) ? 0 : Math.min(0.22, bgmVolume);
+        bgmGain.gain.value = muted ? 0 : Math.min(0.22, bgmVolume);
         bgmSource.connect(bgmHighpass);
         bgmHighpass.connect(bgmLowpass);
         bgmLowpass.connect(bgmGain);
@@ -589,7 +564,7 @@ function audio(){
   if(AC&&AC.state==="suspended") AC.resume().catch(()=>{});
 }
 function playBgm(){
-  if(!bgm || muted || TEST_NO_BGM) return;
+  if(!bgm || muted) return;
   audio();
   setBgmElementVolume();
   bgm.play().catch(()=>{});
@@ -603,7 +578,7 @@ function stopBgm(){
   if(bgm.src) bgm.currentTime = 0;
 }
 function tone(freq, dur, type, vol, when){
-  if(muted || TEST_NO_SFX) return;
+  if(muted) return;
   audio();
   if(!AC || !sfxGain) return;
   const t = AC.currentTime + (when||0);
