@@ -479,11 +479,12 @@ let sfxGain = null;
 let sfxLimiter = null;
 const bgm = document.getElementById("bgm");
 const AUDIO_TEST_MODE = window.__AUDIO_TEST_MODE || "";
-const TEST_NO_BGM = AUDIO_TEST_MODE==="nobgm" || /(?:[?&#/])(nobgm|bgmoff|bgm-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
-const TEST_NO_SFX = AUDIO_TEST_MODE==="nosfx" || /(?:[?&#/])(nosfx|sfxoff|sfx-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
+const TEST_SILENT = AUDIO_TEST_MODE==="silent" || /(?:[?&#/])(silent|all-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
+const TEST_NO_BGM = TEST_SILENT || AUDIO_TEST_MODE==="nobgm" || /(?:[?&#/])(nobgm|bgmoff|bgm-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
+const TEST_NO_SFX = TEST_SILENT || AUDIO_TEST_MODE==="nosfx" || /(?:[?&#/])(nosfx|sfxoff|sfx-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
 const audioTestBadge = document.getElementById("audio-test-badge");
 if(audioTestBadge && (TEST_NO_BGM || TEST_NO_SFX)){
-  audioTestBadge.textContent = TEST_NO_BGM ? "TEST: BGM OFF" : "TEST: SFX OFF";
+  audioTestBadge.textContent = TEST_SILENT ? "TEST: ALL AUDIO OFF" : (TEST_NO_BGM ? "TEST: BGM OFF" : "TEST: SFX OFF");
   audioTestBadge.classList.remove("hidden");
 }
 if(TEST_NO_BGM && bgm){
