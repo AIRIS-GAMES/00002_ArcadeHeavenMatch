@@ -475,8 +475,13 @@ resize();
 
 //================ Sound ================
 let AC = null;
+let masterGain = null;
+let masterLimiter = null;
 let sfxGain = null;
-let sfxLimiter = null;
+let bgmSource = null;
+let bgmHighpass = null;
+let bgmLowpass = null;
+let bgmGain = null;
 const bgm = document.getElementById("bgm");
 const AUDIO_TEST_MODE = window.__AUDIO_TEST_MODE || "";
 const TEST_SILENT = AUDIO_TEST_MODE==="silent" || /(?:[?&#/])(silent|all-off)(?:=1)?(?:[&#/?]|$)/.test(location.href);
@@ -497,7 +502,7 @@ if(TEST_NO_BGM && bgm){
 let muted = localStorage.getItem("ohanapon-muted")==="1";
 const AUDIO_BALANCE_KEY = "ohanapon-audio-balance";
 const BGM_DEFAULT_VOLUME = 0.18;
-const SFX_MASTER_VOLUME = 0.95;
+const SFX_MASTER_VOLUME = 0.42;
 let bgmVolume = Math.min(1, Math.max(0, +(localStorage.getItem("ohanapon-bgm-volume")||BGM_DEFAULT_VOLUME)));
 if(localStorage.getItem(AUDIO_BALANCE_KEY)!=="3"){
   bgmVolume = Math.min(bgmVolume, BGM_DEFAULT_VOLUME);
@@ -505,7 +510,8 @@ if(localStorage.getItem(AUDIO_BALANCE_KEY)!=="3"){
   localStorage.setItem(AUDIO_BALANCE_KEY, "3");
 }
 function setBgmElementVolume(){
-  if(bgm) bgm.volume = (muted || TEST_NO_BGM) ? 0 : Math.min(1, bgmVolume);
+  if(bgm) bgm.volume = TEST_NO_BGM ? 0 : (bgmSource ? 1 : Math.min(0.12, bgmVolume));
+  if(bgmGain) bgmGain.gain.value = (muted || TEST_NO_BGM) ? 0 : Math.min(0.22, bgmVolume);
 }
 function syncVolumeUI(){
   const slider=document.getElementById("bgm-volume");
@@ -516,7 +522,9 @@ function syncVolumeUI(){
   setBgmElementVolume();
 }
 function applyMuted(){
-  if(bgm) bgm.muted = muted || TEST_NO_BGM;
+  if(bgm) bgm.muted = TEST_NO_BGM || (!bgmSource && muted);
+  if(masterGain) masterGain.gain.value = muted ? 0 : 0.82;
+  if(bgmGain) bgmGain.gain.value = (muted || TEST_NO_BGM) ? 0 : Math.min(0.22, bgmVolume);
   if(sfxGain) sfxGain.gain.value = (muted || TEST_NO_SFX) ? 0 : SFX_MASTER_VOLUME;
   const b=document.getElementById("btn-mute");
   if(b) b.textContent = muted ? "🔇" : "🔊";
@@ -542,20 +550,40 @@ function toggleMute(){
   else if(state!=="title" && state!=="over" && state!=="paused") playBgm();
 }
 function audio(){
-  if(TEST_NO_SFX) return;
+  if(TEST_SILENT) return;
   if(!AC){
     try{
       AC = new (window.AudioContext||window.webkitAudioContext)({ latencyHint:"interactive" });
+      masterGain = AC.createGain();
+      masterLimiter = AC.createDynamicsCompressor();
       sfxGain = AC.createGain();
-      sfxLimiter = AC.createDynamicsCompressor();
-      sfxLimiter.threshold.value = -12;
-      sfxLimiter.knee.value = 10;
-      sfxLimiter.ratio.value = 8;
-      sfxLimiter.attack.value = 0.003;
-      sfxLimiter.release.value = 0.16;
+      masterLimiter.threshold.value = -18;
+      masterLimiter.knee.value = 18;
+      masterLimiter.ratio.value = 4;
+      masterLimiter.attack.value = 0.006;
+      masterLimiter.release.value = 0.18;
+      masterGain.gain.value = muted ? 0 : 0.82;
       sfxGain.gain.value = (muted || TEST_NO_SFX) ? 0 : SFX_MASTER_VOLUME;
-      sfxGain.connect(sfxLimiter);
-      sfxLimiter.connect(AC.destination);
+      sfxGain.connect(masterGain);
+      if(bgm && !TEST_NO_BGM){
+        bgmSource = AC.createMediaElementSource(bgm);
+        bgmHighpass = AC.createBiquadFilter();
+        bgmLowpass = AC.createBiquadFilter();
+        bgmGain = AC.createGain();
+        bgmHighpass.type = "highpass";
+        bgmHighpass.frequency.value = 140;
+        bgmHighpass.Q.value = 0.7;
+        bgmLowpass.type = "lowpass";
+        bgmLowpass.frequency.value = 7600;
+        bgmLowpass.Q.value = 0.7;
+        bgmGain.gain.value = (muted || TEST_NO_BGM) ? 0 : Math.min(0.22, bgmVolume);
+        bgmSource.connect(bgmHighpass);
+        bgmHighpass.connect(bgmLowpass);
+        bgmLowpass.connect(bgmGain);
+        bgmGain.connect(masterGain);
+      }
+      masterGain.connect(masterLimiter);
+      masterLimiter.connect(AC.destination);
     }catch(e){}
   }
   if(AC&&AC.state==="suspended") AC.resume().catch(()=>{});
@@ -580,9 +608,10 @@ function tone(freq, dur, type, vol, when){
   if(!AC || !sfxGain) return;
   const t = AC.currentTime + (when||0);
   const o = AC.createOscillator(), g = AC.createGain();
-  o.type = type||"sine"; o.frequency.value = freq;
+  o.type = type==="square" ? "triangle" : (type||"sine");
+  o.frequency.value = freq;
   g.gain.setValueAtTime(0.001, t);
-  g.gain.exponentialRampToValueAtTime(Math.max(0.001, vol||0.15), t+0.012);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.001, (vol||0.15)*0.55), t+0.018);
   g.gain.exponentialRampToValueAtTime(0.001, t+dur);
   o.connect(g); g.connect(sfxGain);
   o.start(t); o.stop(t+dur);
