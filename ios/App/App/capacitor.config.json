@@ -1,0 +1,8 @@
+{
+	"appId": "com.airisgames.arcadeheavenmatch",
+	"appName": "ArcadeHeaven Match",
+	"webDir": "dist",
+	"packageClassList": [
+		"AdMobPlugin"
+	]
+}
