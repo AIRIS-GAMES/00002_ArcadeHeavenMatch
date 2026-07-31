@@ -472,7 +472,12 @@
 "use strict";
 //================ Basic Settings ================
 const COLS = 7, ROWS = 8, NTYPES = 5;
-const BELL = 9; // special tile
+const BELL = 9; // cross-clear special tile
+const BOMB = 10; // 3x3 blast special tile
+const TIME = 11; // time recovery special tile
+const COLOR_CLEAR = 12; // clears every tile of one color
+const TIME_RECOVER_SEC = 8;
+const COLOR_CLEAR_DROP_RATE = 0.025;
 const SWAP_T = 0.14, CLEAR_T = 0.26;
 const GRAV = 4200;
 
@@ -615,6 +620,9 @@ function sndClear(combo){
   tone(PENTA[i],.18,"sine",.22); tone(PENTA[i+2],.22,"sine",.14,.05);
 }
 function sndBell(){ tone(1568,.34,"triangle",.24); tone(2093,.38,"sine",.16,.06); }
+function sndBomb(){ tone(196,.12,"triangle",.28); tone(98,.22,"sine",.2,.03); tone(784,.14,"triangle",.12,.08); }
+function sndTime(){ tone(880,.12,"sine",.18); tone(1175,.14,"triangle",.14,.06); tone(1568,.16,"sine",.12,.13); }
+function sndColorClear(){ [523,659,784,1047,1319].forEach((f,i)=>tone(f,.12,"sine",.13,i*.045)); }
 function sndClearStage(){ [0,2,4,5].forEach((n,i)=>tone(PENTA[n],.3,"sine",.19,i*.12)); }
 function sndLose(){ tone(392,.25,"sine",.16); tone(311,.35,"sine",.16,.2); }
 function sndHorror(){
@@ -696,7 +704,7 @@ function saveBoosts(){
 }
 let swapInfo = null;   // {r1,c1,r2,c2,t}
 let pausedState = null;
-let clearTimer = 0, clearSet = null, bellSpawns = null;
+let clearTimer = 0, clearSet = null, specialSpawns = null;
 let particles = [], floats = [];
 let selected = null;
 let idleTime = 0, hint = null;
@@ -727,6 +735,7 @@ if(typeof Image !== "undefined"){
 }
 function imgReady(img){ return img && img.complete && img.naturalWidth; }
 function readyCharas(){ return charaImgs.filter(imgReady); }
+function isSpecialTile(t){ return t===BELL || t===BOMB || t===TIME || t===COLOR_CLEAR; }
 function drawContainedImage(g,img,cx,cy,maxW,maxH,alpha,flip){
   if(!imgReady(img)) return false;
   const sc = Math.min(maxW/img.naturalWidth, maxH/img.naturalHeight);
@@ -746,7 +755,11 @@ function drawContainedImage(g,img,cx,cy,maxW,maxH,alpha,flip){
   g.restore();
   return true;
 }
-function newTile(t){ return { t:(t===undefined? (Math.random()*NTYPES|0) : t), offY:0, vy:0, scale:1, pop:0 }; }
+function randomTileType(){
+  if(!practiceMode && Math.random()<COLOR_CLEAR_DROP_RATE) return COLOR_CLEAR;
+  return Math.random()*NTYPES|0;
+}
+function newTile(t){ return { t:(t===undefined? randomTileType() : t), offY:0, vy:0, scale:1, pop:0 }; }
 
 function buildBoard(){
   do {
@@ -808,7 +821,7 @@ function findRuns(){
     let c=0;
     while(c<COLS){
       const t0 = board[r][c] && board[r][c].t;
-      if(t0===null||t0===undefined||t0===BELL){ c++; continue; }
+      if(t0===null||t0===undefined||isSpecialTile(t0)){ c++; continue; }
       let e=c; while(e+1<COLS && board[r][e+1] && board[r][e+1].t===t0) e++;
       if(e-c>=2){ const run=[]; for(let i=c;i<=e;i++) run.push([r,i]); runs.push(run); }
       c=e+1;
@@ -818,7 +831,7 @@ function findRuns(){
     let r=0;
     while(r<ROWS){
       const t0 = board[r][c] && board[r][c].t;
-      if(t0===null||t0===undefined||t0===BELL){ r++; continue; }
+      if(t0===null||t0===undefined||isSpecialTile(t0)){ r++; continue; }
       let e=r; while(e+1<ROWS && board[e+1][c] && board[e+1][c].t===t0) e++;
       if(e-r>=2){ const run=[]; for(let i=r;i<=e;i++) run.push([i,c]); runs.push(run); }
       r=e+1;
@@ -828,7 +841,7 @@ function findRuns(){
 }
 
 function wouldMatch(r,c){
-  const t = board[r][c].t; if(t===BELL) return true;
+  const t = board[r][c].t; if(isSpecialTile(t)) return true;
   let n=1;
   for(let i=c-1;i>=0&&board[r][i]&&board[r][i].t===t;i--)n++;
   for(let i=c+1;i<COLS&&board[r][i]&&board[r][i].t===t;i++)n++;
@@ -841,7 +854,7 @@ function wouldMatch(r,c){
 
 function findAnyMove(){
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    if(board[r][c].t===BELL) return [r,c,r,c];
+    if(isSpecialTile(board[r][c].t)) return [r,c,r,c];
     for(const [dr,dc] of [[0,1],[1,0]]){
       const r2=r+dr, c2=c+dc;
       if(r2>=ROWS||c2>=COLS) continue;
@@ -884,16 +897,8 @@ function commitSwap(){
   const a=board[r1][c1], b=board[r2][c2];
   board[r1][c1]=b; board[r2][c2]=a;
 
-  if(a.t===BELL || b.t===BELL){
-    const cells = new Set();
-    if(a.t===BELL && b.t===BELL){
-      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) cells.add(r+","+c);
-      shakeT=.4;
-    } else {
-      const br = (a.t===BELL)? r2:r1, bc = (a.t===BELL)? c2:c1;
-      bellBlast(br,bc,cells);
-    }
-    sndBell();
+  if(isSpecialTile(a.t) || isSpecialTile(b.t)){
+    const cells = specialSwapBlast(a, b, r1, c1, r2, c2);
     if(practiceMode && practiceStep===3) practiceStarUsed = true;
     startClear(cells, []);
     return;
@@ -913,6 +918,52 @@ function commitSwap(){
   resolveRuns(runs, [r2,c2], [r1,c1]);
 }
 
+function specialSwapBlast(a,b,r1,c1,r2,c2){
+  const cells = new Set();
+  const aPos = [r2,c2], bPos = [r1,c1];
+  if(isSpecialTile(a.t) && isSpecialTile(b.t)){
+    if(a.t===COLOR_CLEAR && b.t===COLOR_CLEAR){
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) cells.add(r+","+c);
+      sndColorClear();
+      shakeT=.4;
+      return cells;
+    }
+    if(a.t===BELL && b.t===BELL){
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++) cells.add(r+","+c);
+      sndBell();
+      shakeT=.4;
+      return cells;
+    }
+    if(a.t===BOMB && b.t===BOMB){
+      bombBlast(aPos[0], aPos[1], cells, 2);
+      bombBlast(bPos[0], bPos[1], cells, 2);
+      sndBomb();
+      shakeT=.35;
+      return cells;
+    }
+    const activated = new Set([aPos[0]+","+aPos[1], bPos[0]+","+bPos[1]]);
+    activateSpecialAt(aPos[0], aPos[1], cells, b.t);
+    activateSpecialAt(bPos[0], bPos[1], cells, a.t);
+    expandSpecials(cells, activated);
+    return cells;
+  }
+  const pos = isSpecialTile(a.t) ? aPos : bPos;
+  const other = isSpecialTile(a.t) ? b.t : a.t;
+  const activated = new Set([pos[0]+","+pos[1]]);
+  activateSpecialAt(pos[0], pos[1], cells, other);
+  expandSpecials(cells, activated);
+  return cells;
+}
+
+function activateSpecialAt(r,c,cells,targetType){
+  const tile = board[r] && board[r][c];
+  if(!tile) return;
+  if(tile.t===BELL){ bellBlast(r,c,cells); sndBell(); }
+  else if(tile.t===BOMB){ bombBlast(r,c,cells,1); sndBomb(); }
+  else if(tile.t===TIME){ timeRecover(r,c,cells); }
+  else if(tile.t===COLOR_CLEAR){ colorClear(r,c,cells,targetType); }
+}
+
 function bellBlast(br,bc,cells){
   const queue=[[br,bc]]; cells.add(br+","+bc);
   while(queue.length){
@@ -929,29 +980,93 @@ function bellBlast(br,bc,cells){
   shakeT=.25;
 }
 
+function bombBlast(br,bc,cells,radius){
+  cells.add(br+","+bc);
+  for(let r=Math.max(0,br-radius);r<=Math.min(ROWS-1,br+radius);r++){
+    for(let c=Math.max(0,bc-radius);c<=Math.min(COLS-1,bc+radius);c++){
+      cells.add(r+","+c);
+    }
+  }
+  shakeT=Math.max(shakeT,0.22+radius*0.06);
+}
+
+function timeRecover(r,c,cells){
+  cells.add(r+","+c);
+  if(!practiceMode){
+    timeLeft += TIME_RECOVER_SEC;
+    updateHUD();
+  }
+  const x=bx+c*cs+cs/2, y=by+r*cs+cs/2;
+  floats.push({x,y:y-cs*0.25,txt:"+"+TIME_RECOVER_SEC+"s",life:1,color:"#32b7ff",size:24});
+  sndTime();
+}
+
+function colorClear(r,c,cells,targetType){
+  const target = (targetType>=0 && targetType<NTYPES) ? targetType : randomBoardColor();
+  cells.add(r+","+c);
+  if(target===null) return;
+  for(let rr=0;rr<ROWS;rr++){
+    for(let cc=0;cc<COLS;cc++){
+      if(board[rr][cc] && board[rr][cc].t===target) cells.add(rr+","+cc);
+    }
+  }
+  const x=bx+c*cs+cs/2, y=by+r*cs+cs/2;
+  floats.push({x,y:y-cs*0.25,txt:"COLOR!",life:1,color:PAL[target].petal,size:24});
+  sndColorClear();
+  shakeT=Math.max(shakeT,0.28);
+}
+
+function randomBoardColor(){
+  const seen = [];
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const tile = board[r][c];
+      if(tile && tile.t>=0 && tile.t<NTYPES && !seen.includes(tile.t)) seen.push(tile.t);
+    }
+  }
+  return seen.length ? seen[Math.random()*seen.length|0] : null;
+}
+
+function expandSpecials(cells, activated){
+  activated = activated || new Set();
+  let changed = true;
+  while(changed){
+    changed = false;
+    for(const k of [...cells]){
+      if(activated.has(k)) continue;
+      const [r,c]=k.split(",").map(Number);
+      const tile = board[r] && board[r][c];
+      if(tile && isSpecialTile(tile.t)){
+        activated.add(k);
+        activateSpecialAt(r,c,cells);
+        changed = true;
+      }
+    }
+  }
+}
+
 function resolveRuns(runs, prefPos, prefPos2){
   const cells = new Set();
-  const bells = [];
+  const spawns = [];
   for(const run of runs){
     for(const [r,c] of run) cells.add(r+","+c);
     if(run.length>=4){
       let pos = run.find(([r,c]) => (prefPos && r===prefPos[0]&&c===prefPos[1]) || (prefPos2 && r===prefPos2[0]&&c===prefPos2[1]));
       if(!pos) pos = run[run.length>>1];
-      bells.push(pos);
+      const isVertical = run.length>=2 && run[0][1]===run[run.length-1][1];
+      const specialType = run.length>=5 ? (isVertical ? TIME : BOMB) : BELL;
+      spawns.push({ r:pos[0], c:pos[1], t:specialType });
     }
   }
-  for(const [r,c] of bells) cells.delete(r+","+c);
+  for(const sp of spawns) cells.delete(sp.r+","+sp.c);
   // Chain-react special tiles caught in the clear set.
-  for(const k of [...cells]){
-    const [r,c]=k.split(",").map(Number);
-    if(board[r][c]&&board[r][c].t===BELL){ bellBlast(r,c,cells); sndBell(); }
-  }
-  startClear(cells, bells);
+  expandSpecials(cells);
+  startClear(cells, spawns);
 }
 
 //================ Clear And Drop ================
-function startClear(cells, bells){
-  clearSet = cells; bellSpawns = bells; clearTimer = 0;
+function startClear(cells, spawns){
+  clearSet = cells; specialSpawns = spawns; clearTimer = 0;
   let n=0;
   for(const k of cells){
     const [r,c]=k.split(",").map(Number);
@@ -977,8 +1092,8 @@ function finishClear(){
     const [r,c]=k.split(",").map(Number);
     board[r][c]=null;
   }
-  for(const [r,c] of bellSpawns){
-    board[r][c]=newTile(BELL); board[r][c].pop=0.35;
+  for(const sp of specialSpawns){
+    board[sp.r][sp.c]=newTile(sp.t); board[sp.r][sp.c].pop=0.35;
   }
   // Drop existing tiles down.
   for(let c=0;c<COLS;c++){
@@ -1654,11 +1769,13 @@ function sndCoinRush(amount){
   }
 }
 function spawnParticles(x,y,type){
-  const col = type===BELL? "#ffd34d" : PAL[type].petal;
-  for(let i=0;i<7;i++){
+  const col = type===BELL ? "#ffd34d" : type===BOMB ? "#ff6a3d" : type===TIME ? "#43c8ff" : type===COLOR_CLEAR ? "#ffffff" : PAL[type].petal;
+  const count = type===BOMB ? 13 : type===TIME ? 10 : type===COLOR_CLEAR ? 16 : 7;
+  for(let i=0;i<count;i++){
     const a=Math.random()*Math.PI*2, sp=60+Math.random()*160;
-    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-80,life:.5+Math.random()*.4,col,
-      r:2+Math.random()*4, heart:Math.random()<.3});
+    const pcol = type===COLOR_CLEAR ? PAL[i%PAL.length].petal : col;
+    particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-80,life:.5+Math.random()*.4,
+      col:pcol, r:2+Math.random()*4, heart:type!==BOMB && Math.random()<.3});
   }
 }
 
@@ -1742,12 +1859,159 @@ function drawBell(x,y,r,pulse){
   ctx.restore();
 }
 
+function drawBomb(x,y,r,pulse){
+  const bob = Math.sin(pulse*7);
+  ctx.save();
+  ctx.shadowColor="rgba(80,30,20,.35)";
+  ctx.shadowBlur=r*0.26;
+  ctx.shadowOffsetY=r*0.12;
+
+  const body=ctx.createRadialGradient(x-r*0.22,y-r*0.28,r*0.08,x,y,r*0.82);
+  body.addColorStop(0,"#6a5778");
+  body.addColorStop(0.55,"#35294a");
+  body.addColorStop(1,"#171122");
+  ctx.fillStyle=body;
+  ctx.beginPath();
+  ctx.arc(x,y+r*0.06,r*0.72,0,7);
+  ctx.fill();
+
+  ctx.shadowBlur=0;
+  ctx.strokeStyle="#5b4630";
+  ctx.lineWidth=Math.max(3,r*0.12);
+  ctx.lineCap="round";
+  ctx.beginPath();
+  ctx.moveTo(x+r*0.35,y-r*0.46);
+  ctx.quadraticCurveTo(x+r*0.68,y-r*0.8,x+r*0.94,y-r*0.58);
+  ctx.stroke();
+
+  const sparkX=x+r*(0.96+0.04*bob), sparkY=y-r*(0.58+0.04*bob);
+  ctx.fillStyle="#fff3a3";
+  ctx.beginPath();
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4 + pulse*2.2;
+    const rr=i%2 ? r*0.16 : r*0.29;
+    const px=sparkX+Math.cos(a)*rr, py=sparkY+Math.sin(a)*rr;
+    if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle="#ff7a31";
+  ctx.beginPath(); ctx.arc(sparkX,sparkY,r*0.11,0,7); ctx.fill();
+
+  ctx.fillStyle="rgba(255,255,255,.38)";
+  ctx.beginPath();
+  ctx.arc(x-r*0.24,y-r*0.2,r*0.16,0,7);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawTimeTile(x,y,r,pulse){
+  const wobble = Math.sin(pulse*6);
+  ctx.save();
+  ctx.shadowColor="rgba(30,110,170,.35)";
+  ctx.shadowBlur=r*0.28;
+  ctx.shadowOffsetY=r*0.1;
+
+  const glow=ctx.createRadialGradient(x,y,r*0.1,x,y,r*1.05);
+  glow.addColorStop(0,"rgba(255,255,255,.95)");
+  glow.addColorStop(0.58,"rgba(120,220,255,.9)");
+  glow.addColorStop(1,"rgba(45,150,230,.18)");
+  ctx.fillStyle=glow;
+  ctx.beginPath();
+  ctx.arc(x,y,r*0.78,0,7);
+  ctx.fill();
+
+  ctx.shadowBlur=0;
+  ctx.strokeStyle="#ffffff";
+  ctx.lineWidth=Math.max(3,r*0.12);
+  ctx.beginPath();
+  ctx.arc(x,y,r*0.56,0,7);
+  ctx.stroke();
+
+  ctx.strokeStyle="#267fc7";
+  ctx.lineCap="round";
+  ctx.lineWidth=Math.max(3,r*0.1);
+  ctx.beginPath();
+  ctx.moveTo(x,y);
+  ctx.lineTo(x,y-r*0.33);
+  ctx.moveTo(x,y);
+  ctx.lineTo(x+r*(0.26+0.03*wobble),y+r*0.18);
+  ctx.stroke();
+
+  ctx.fillStyle="#267fc7";
+  for(let i=0;i<4;i++){
+    const a=-Math.PI/2+i*Math.PI/2;
+    ctx.beginPath();
+    ctx.arc(x+Math.cos(a)*r*0.43,y+Math.sin(a)*r*0.43,r*0.035,0,7);
+    ctx.fill();
+  }
+
+  ctx.fillStyle="#ffffff";
+  ctx.font="bold "+Math.max(12,Math.floor(r*0.42))+"px sans-serif";
+  ctx.textAlign="center";
+  ctx.textBaseline="middle";
+  ctx.fillText("+",x-r*0.46,y-r*0.42);
+  ctx.restore();
+}
+
+function drawColorClearTile(x,y,r,pulse){
+  const spin = pulse*1.8;
+  ctx.save();
+  ctx.shadowColor="rgba(80,60,160,.35)";
+  ctx.shadowBlur=r*0.32;
+  ctx.shadowOffsetY=r*0.1;
+
+  ctx.beginPath();
+  ctx.arc(x,y,r*0.78,0,7);
+  ctx.clip();
+  for(let i=0;i<PAL.length;i++){
+    const a0=spin+i*Math.PI*2/PAL.length;
+    const a1=spin+(i+1)*Math.PI*2/PAL.length;
+    ctx.fillStyle=PAL[i].petal;
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.arc(x,y,r*0.84,a0,a1);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.save();
+  ctx.strokeStyle="#ffffff";
+  ctx.lineWidth=Math.max(3,r*0.1);
+  ctx.shadowColor="rgba(255,255,255,.8)";
+  ctx.shadowBlur=r*0.16;
+  ctx.beginPath();
+  ctx.arc(x,y,r*0.68,0,7);
+  ctx.stroke();
+
+  ctx.fillStyle="rgba(255,255,255,.88)";
+  ctx.beginPath();
+  ctx.arc(x-r*0.22,y-r*0.22,r*0.16,0,7);
+  ctx.fill();
+
+  ctx.strokeStyle="rgba(255,255,255,.95)";
+  ctx.lineWidth=Math.max(2,r*0.07);
+  ctx.lineCap="round";
+  for(let i=0;i<5;i++){
+    const a=spin+i*Math.PI*2/5;
+    ctx.beginPath();
+    ctx.moveTo(x+Math.cos(a)*r*0.24,y+Math.sin(a)*r*0.24);
+    ctx.lineTo(x+Math.cos(a)*r*0.5,y+Math.sin(a)*r*0.5);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawTile(r,c,tile,x,y,extraScale){
   const sc = tile.scale * (1+tile.pop) * (extraScale||1);
   const cx = x+cs/2, cy = y+cs/2;
   ctx.save();
   ctx.translate(cx,cy); ctx.scale(sc,sc); ctx.translate(-cx,-cy);
   if(tile.t===BELL) drawBell(cx,cy,cs*0.4, perf);
+  else if(tile.t===BOMB) drawBomb(cx,cy,cs*0.4, perf);
+  else if(tile.t===TIME) drawTimeTile(cx,cy,cs*0.4, perf);
+  else if(tile.t===COLOR_CLEAR) drawColorClearTile(cx,cy,cs*0.4, perf);
   else drawObject(ctx, tile.t, cx,cy,cs*0.4);
   ctx.restore();
 }
