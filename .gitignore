@@ -4,6 +4,10 @@
 # Local tool settings
 .claude/
 
+# Local environment variables
+.env*
+!.env.example
+
 # Dependencies
 node_modules/
 
