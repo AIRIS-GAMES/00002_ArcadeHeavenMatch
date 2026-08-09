@@ -82,6 +82,9 @@
     background:rgba(255,240,250,.55); backdrop-filter:blur(5px);
     text-align:center; padding:20px; gap:14px;
   }
+  @supports (height:100svh) {
+    .overlay { min-height:100svh; }
+  }
   #title {
     background:linear-gradient(180deg,#ffd5ea 0%,#ded5ff 46%,#c9f1dc 100%);
     backdrop-filter:none;
@@ -114,6 +117,26 @@
   #title.show-menu {
     justify-content:flex-start;
     overflow-y:auto;
+    padding:calc(env(safe-area-inset-top,0px) + 8px) 14px calc(env(safe-area-inset-bottom,0px) + 12px + var(--ad-banner-h));
+  }
+  #title .title-coin-badge {
+    position:absolute;
+    top:calc(env(safe-area-inset-top,0px) + 10px);
+    right:12px;
+    z-index:3;
+    min-width:76px;
+    padding:6px 10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.86);
+    border:2px solid rgba(255,255,255,.95);
+    box-shadow:0 5px 12px rgba(150,100,180,.22);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  #title.show-menu .title-coin-badge {
+    opacity:1;
+    pointer-events:auto;
   }
   #title.show-menu .panel {
     opacity:1;
@@ -123,6 +146,7 @@
   #title .title-menu {
     max-width:min(92vw,480px);
     width:92%;
+    max-height:calc(100svh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - var(--ad-banner-h) - 20px);
     margin-top:clamp(12px,2.5vh,28px);
     margin-bottom:calc(24px + var(--ad-banner-h));
     padding:0;
@@ -133,6 +157,7 @@
   }
   .title-hero {
     width:100%;
+    flex:0 0 auto;
     display:flex;
     flex-direction:column;
     align-items:center;
@@ -140,30 +165,24 @@
     filter:drop-shadow(0 8px 18px rgba(135,80,175,.22));
   }
   .title-logo-img {
-    width:min(92%,390px);
+    width:min(84%,360px);
+    max-height:30svh;
     height:auto;
     display:block;
-    border-radius:22px;
-  }
-  .title-characters-img {
-    width:min(90%,360px);
-    height:auto;
-    display:block;
-    border-radius:18px;
-    margin-top:-4px;
+    object-fit:contain;
+    border-radius:0;
   }
   .howto-card {
     width:100%;
+    flex:0 0 auto;
     position:relative;
-    display:grid;
-    grid-template-columns:116px minmax(0,1fr);
-    gap:12px;
-    align-items:center;
     padding:28px 18px 18px;
     background:rgba(255,255,255,.91);
     border:4px solid #ff9fc5;
     border-radius:24px;
     box-shadow:0 8px 18px rgba(180,120,170,.28);
+    overflow:hidden;
+    touch-action:pan-y;
   }
   .howto-label {
     position:absolute; left:50%; top:0;
@@ -179,37 +198,48 @@
   .howto-board {
     display:grid;
     grid-template-columns:repeat(3,minmax(0,1fr));
-    width:116px;
+    width:128px;
     min-width:0;
     box-sizing:border-box;
-    gap:4px;
-    padding:8px;
-    border:4px solid #f1d4ba;
-    border-radius:16px;
-    background:#fff5dd;
+    gap:2px;
+    padding:0;
+    border:0;
+    border-radius:0;
+    background:transparent;
+  }
+  .howto-pages {
+    width:200%;
+    display:flex;
+    transition:transform .24s ease;
+  }
+  .howto-card[data-page="1"] .howto-pages { transform:translateX(-50%); }
+  .howto-page {
+    width:50%;
+    flex:0 0 50%;
+    display:grid;
+    grid-template-columns:128px minmax(0,1fr);
+    gap:12px;
+    align-items:center;
+    padding:0 1px;
   }
   .howto-piece {
     aspect-ratio:1;
     display:flex; align-items:center; justify-content:center;
-    border-radius:10px;
-    background:rgba(255,255,255,.72);
-    border:2px solid rgba(245,215,185,.8);
+    border-radius:0;
+    background:transparent;
+    border:0;
     font-size:clamp(22px,7vw,34px);
     line-height:1;
     overflow:hidden;
   }
   .howto-piece img {
-    width:92%;
-    height:92%;
+    width:126%;
+    height:126%;
     object-fit:contain;
     display:block;
     filter:drop-shadow(0 2px 3px rgba(120,80,130,.22));
   }
-  .howto-piece.match {
-    background:linear-gradient(180deg,#b8efff,#50c8ff);
-    color:#fff;
-    text-shadow:0 2px 0 rgba(20,120,200,.28);
-  }
+  .howto-piece.match { background:transparent; }
   .howto-text {
     text-align:left;
     color:#7a4f40;
@@ -234,13 +264,62 @@
     object-fit:contain;
     filter:drop-shadow(0 3px 5px rgba(120,80,150,.25));
   }
+  .howto-special-list {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    min-width:0;
+  }
+  .howto-special-row {
+    display:flex;
+    align-items:center;
+    gap:7px;
+    color:#7a4f40;
+    font-size:13px;
+    line-height:1.18;
+    font-weight:bold;
+    text-align:left;
+  }
+  .special-icon {
+    width:38px;
+    height:38px;
+    flex:0 0 38px;
+    display:block;
+    object-fit:contain;
+    filter:drop-shadow(0 3px 5px rgba(120,80,150,.22));
+  }
+  .howto-special-page {
+    grid-template-columns:1fr;
+  }
+  .howto-dots {
+    position:absolute;
+    left:0; right:0; bottom:5px;
+    display:flex;
+    justify-content:center;
+    gap:6px;
+    pointer-events:auto;
+  }
+  .howto-dot {
+    width:7px;
+    height:7px;
+    border:0;
+    border-radius:50%;
+    padding:0;
+    min-width:0;
+    background:rgba(155,111,201,.35);
+    box-shadow:none;
+  }
+  .howto-dot.on { background:#ff7eb6; }
   .title-actions {
     width:100%;
+    flex:0 0 auto;
     display:flex; flex-direction:column; align-items:stretch; gap:12px;
   }
-  #title.show-menu #promo-banner,
-  #title.show-menu #promo-dots {
-    display:none;
+  .title-secondary-actions {
+    width:100%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
   }
   #title .title-start {
     min-height:78px;
@@ -283,29 +362,20 @@
     vertical-align:middle;
   }
   #title .title-ranking {
-    min-height:70px;
-    border-radius:24px;
-    font-size:clamp(21px,6vw,28px);
+    min-height:62px;
+    border-radius:22px;
+    font-size:clamp(18px,4.8vw,24px);
     background:linear-gradient(180deg,#cda7ff,#8f6df1);
     box-shadow:0 7px 0 #714fd0, 0 12px 18px rgba(120,80,210,.26);
-  }
-  #title .title-ranking::before {
-    content:"🏆";
-    margin-right:10px;
-    filter:drop-shadow(0 2px 0 rgba(80,40,120,.25));
   }
   #title .title-shop {
     min-height:62px;
     border-radius:22px;
-    font-size:clamp(20px,5.5vw,26px);
+    font-size:clamp(18px,4.8vw,24px);
     color:#2d8c66;
     background:linear-gradient(180deg,#c9ffe7,#73e7b0);
     box-shadow:0 7px 0 #43bd82, 0 12px 18px rgba(60,170,120,.22);
     text-shadow:0 2px 0 #fff;
-  }
-  #title .title-shop::before {
-    content:"🛒";
-    margin-right:10px;
   }
   .title-meta {
     display:flex; align-items:center; justify-content:center; gap:12px;
@@ -324,12 +394,9 @@
       margin-bottom:10px;
       gap:7px;
     }
-    .title-logo-img { width:min(88%,320px); border-radius:16px; }
-    .title-characters-img { width:min(84%,292px); border-radius:14px; margin-top:-6px; }
+    .title-logo-img { width:min(80%,320px); }
     .howto-card {
-      grid-template-columns:96px minmax(0,1fr);
-      gap:8px;
-      padding:19px 10px 10px;
+      padding:19px 10px 16px;
       border-width:3px;
       border-radius:18px;
       box-shadow:0 5px 12px rgba(180,120,170,.22);
@@ -342,7 +409,13 @@
       box-shadow:0 3px 0 #e55c9c;
     }
     .howto-board { width:96px; gap:2px; padding:5px; border-width:3px; border-radius:12px; }
-    .howto-piece { border-radius:8px; border-width:1px; }
+    .howto-board { width:104px; padding:0; border:0; border-radius:0; }
+    .howto-page {
+      grid-template-columns:104px minmax(0,1fr);
+      gap:8px;
+    }
+    .howto-piece { border-radius:0; border-width:0; }
+    .howto-piece img { width:130%; height:130%; }
     .howto-text {
       text-align:left;
       font-size:15px;
@@ -355,7 +428,11 @@
     }
     .howto-sub { margin-top:5px; padding-top:5px; gap:5px; border-top-width:2px; }
     .howto-special { width:26px; height:26px; }
+    .howto-special-list { gap:6px 8px; }
+    .howto-special-row { gap:6px; font-size:12px; line-height:1.15; }
+    .special-icon { width:32px; height:32px; flex-basis:32px; }
     .title-actions { gap:8px; }
+    .title-secondary-actions { gap:8px; }
     #title .title-start,
     #title .title-continue {
       min-height:54px;
@@ -372,15 +449,15 @@
       font-size:18px;
     }
     #title .title-ranking {
-      min-height:52px;
+      min-height:48px;
       border-radius:18px;
-      font-size:22px;
+      font-size:18px;
       box-shadow:0 5px 0 #714fd0, 0 8px 12px rgba(120,80,210,.22);
     }
     #title .title-shop {
       min-height:48px;
       border-radius:18px;
-      font-size:22px;
+      font-size:18px;
       box-shadow:0 5px 0 #43bd82, 0 8px 12px rgba(60,170,120,.2);
     }
     #title #btn-continue { padding-top:5px; padding-bottom:5px; }
@@ -388,28 +465,203 @@
   }
   @media (max-width:380px), (max-height:760px) {
     #title .title-menu { gap:6px; margin-top:4px; }
-    .title-logo-img { width:min(82%,292px); }
-    .title-characters-img { width:min(78%,260px); }
+    .title-logo-img { width:min(76%,292px); }
     .title-meta { min-height:18px; }
     .title-meta .best { font-size:11px; }
     .coin-row.sm { font-size:15px; }
     .coin-row.sm img { width:20px; height:20px; }
     .howto-card {
-      grid-template-columns:84px minmax(0,1fr);
-      padding:17px 9px 9px;
-      gap:7px;
+      padding:17px 9px 15px;
     }
     .howto-label { font-size:16px; padding:5px 12px; min-width:132px; }
-    .howto-board { width:84px; padding:4px; }
+    .howto-board { width:92px; padding:0; }
+    .howto-page {
+      grid-template-columns:92px minmax(0,1fr);
+      gap:7px;
+    }
     .howto-piece { font-size:20px; }
     .howto-text { font-size:14px; line-height:1.24; }
     .howto-sub { font-size:10.5px; line-height:1.22; }
     .howto-special { width:24px; height:24px; }
+    .howto-special-list { gap:5px 7px; }
+    .howto-special-row { font-size:11px; gap:5px; }
+    .special-icon { width:29px; height:29px; flex-basis:29px; }
     .title-actions { gap:7px; }
+    .title-secondary-actions { gap:7px; }
     #title .title-start,
     #title .title-continue { min-height:50px; font-size:21px; border-radius:18px; }
-    #title .title-ranking { min-height:48px; font-size:20px; border-radius:17px; }
-    #title .title-shop { min-height:44px; font-size:20px; border-radius:17px; }
+    #title .title-ranking { min-height:44px; font-size:16px; border-radius:17px; }
+    #title .title-shop { min-height:44px; font-size:16px; border-radius:17px; }
+  }
+  @media (max-height:720px) {
+    #title.show-menu {
+      padding-top:calc(env(safe-area-inset-top,0px) + 4px);
+      padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px + var(--ad-banner-h));
+    }
+    #title .title-menu {
+      width:min(94%,360px);
+      gap:5px;
+      margin-top:0;
+      margin-bottom:calc(8px + var(--ad-banner-h));
+    }
+    #title .title-coin-badge {
+      top:calc(env(safe-area-inset-top,0px) + 6px);
+      right:8px;
+      min-width:66px;
+      padding:4px 8px;
+    }
+    .title-logo-img {
+      width:min(70%,260px);
+      max-height:22svh;
+    }
+    .title-meta { min-height:16px; }
+    .title-meta .best { font-size:10.5px; }
+    .howto-card {
+      padding:15px 8px 13px;
+      border-width:3px;
+      border-radius:16px;
+    }
+    .howto-label {
+      min-width:124px;
+      padding:4px 10px;
+      border-radius:13px;
+      font-size:15px;
+    }
+    .howto-board { width:82px; }
+    .howto-page {
+      grid-template-columns:82px minmax(0,1fr);
+      gap:6px;
+    }
+    .howto-text { font-size:12.5px; line-height:1.22; }
+    .howto-sub {
+      margin-top:4px;
+      padding-top:4px;
+      gap:4px;
+      font-size:9.5px;
+      line-height:1.18;
+    }
+    .howto-special { width:21px; height:21px; }
+    .howto-special-list { gap:4px 6px; }
+    .howto-special-row {
+      gap:4px;
+      font-size:10px;
+      line-height:1.12;
+    }
+    .special-icon {
+      width:24px;
+      height:24px;
+      flex-basis:24px;
+    }
+    .howto-dots { bottom:3px; }
+    .title-actions { gap:5px; }
+    .title-secondary-actions { gap:6px; }
+    #title .title-start,
+    #title .title-continue {
+      min-height:44px;
+      border-radius:16px;
+      font-size:19px;
+      box-shadow:0 4px 0 #df8b11, 0 6px 10px rgba(218,132,24,.2);
+    }
+    #title .title-start::before,
+    #title .title-continue::before {
+      width:28px;
+      height:28px;
+      margin-right:6px;
+      border-radius:9px;
+      font-size:15px;
+    }
+    #title .title-ranking,
+    #title .title-shop {
+      min-height:38px;
+      border-radius:15px;
+      font-size:14px;
+    }
+    #title #btn-continue small { font-size:9.5px; }
+    .promo-banner {
+      min-height:42px;
+      padding:6px 8px;
+      gap:7px;
+      border-radius:13px;
+    }
+    .promo-icon {
+      width:34px;
+      height:34px;
+      border-radius:8px;
+    }
+    .promo-caption { font-size:8.5px; line-height:1.15; }
+    .promo-title { font-size:11px; line-height:1.15; }
+    .promo-cta { display:none; }
+    .promo-chevron { font-size:15px; }
+    .promo-dots { margin-top:-3px; }
+  }
+  @media (max-height:660px) {
+    #title .title-menu {
+      width:min(94%,340px);
+      gap:4px;
+    }
+    .title-logo-img {
+      width:min(62%,230px);
+      max-height:18svh;
+    }
+    .title-meta { display:none; }
+    .howto-card {
+      padding:13px 7px 11px;
+      border-width:2px;
+    }
+    .howto-label {
+      min-width:112px;
+      padding:3px 9px;
+      font-size:13px;
+      box-shadow:0 2px 0 #e55c9c;
+    }
+    .howto-board { width:70px; }
+    .howto-page {
+      grid-template-columns:70px minmax(0,1fr);
+      gap:5px;
+    }
+    .howto-piece img { width:124%; height:124%; }
+    .howto-text { font-size:11px; line-height:1.18; }
+    .howto-sub {
+      margin-top:3px;
+      padding-top:3px;
+      font-size:8.5px;
+    }
+    .howto-special { width:18px; height:18px; }
+    .howto-special-row { font-size:9px; }
+    .special-icon {
+      width:21px;
+      height:21px;
+      flex-basis:21px;
+    }
+    #title .title-start,
+    #title .title-continue {
+      min-height:39px;
+      font-size:17px;
+      border-radius:14px;
+    }
+    #title .title-start::before,
+    #title .title-continue::before {
+      width:24px;
+      height:24px;
+      font-size:13px;
+    }
+    #title .title-ranking,
+    #title .title-shop {
+      min-height:34px;
+      font-size:12.5px;
+      border-radius:13px;
+    }
+    .promo-banner {
+      min-height:36px;
+      padding:5px 7px;
+    }
+    .promo-icon {
+      width:30px;
+      height:30px;
+    }
+    .promo-caption { display:none; }
+    .promo-title { font-size:10px; }
+    .promo-dots { display:none; }
   }
   .overlay.hidden { display:none; }
   .panel {
@@ -428,7 +680,7 @@
     display:block;
     flex:0 0 auto;
   }
-  .big-score { font-size:30px; color:#ff8fc0; font-weight:bold; }
+  .big-score { font-size:30px; line-height:1.25; white-space:pre-line; color:#ff8fc0; font-weight:bold; }
   .best { font-size:13px; color:#b09ace; }
   .ranking-panel { max-width:560px; gap:14px; }
   .ranking-name {
@@ -505,7 +757,7 @@
   }
   .shop-item:disabled:active { transform:none; }
   .promo-banner {
-    width:100%; display:flex; align-items:center; gap:10px;
+    width:100%; flex:0 0 auto; display:flex; align-items:center; gap:10px;
     padding:10px 12px; border:none; border-radius:16px;
     background:linear-gradient(180deg,#3b2a5c,#2a1e44);
     box-shadow:0 4px 12px rgba(60,40,110,.3);
@@ -530,6 +782,37 @@
   .promo-dots { display:flex; justify-content:center; gap:5px; margin-top:-4px; }
   .promo-dot { width:6px; height:6px; border-radius:50%; background:rgba(155,111,201,.35); }
   .promo-dot.on { background:#9b6fc9; }
+  @media (max-height:720px) {
+    .promo-banner {
+      min-height:42px;
+      padding:6px 8px;
+      gap:7px;
+      border-radius:13px;
+    }
+    .promo-icon {
+      width:34px;
+      height:34px;
+      border-radius:8px;
+    }
+    .promo-caption { font-size:8.5px; line-height:1.15; }
+    .promo-title { font-size:11px; line-height:1.15; }
+    .promo-cta { display:none; }
+    .promo-chevron { font-size:15px; }
+    .promo-dots { margin-top:-3px; }
+  }
+  @media (max-height:660px) {
+    .promo-banner {
+      min-height:36px;
+      padding:5px 7px;
+    }
+    .promo-icon {
+      width:30px;
+      height:30px;
+    }
+    .promo-caption { display:none; }
+    .promo-title { font-size:10px; }
+    .promo-dots { display:none; }
+  }
   .login-days {
     display:grid; grid-template-columns:repeat(7,1fr); gap:4px; width:100%;
   }
@@ -611,6 +894,12 @@
     box-shadow:0 5px 0 #8c72d6, 0 8px 14px rgba(140,110,210,.34);
   }
   button.secondary-btn:active { box-shadow:0 1px 0 #8c72d6; }
+  #btn-clear-title {
+    min-width:190px;
+    padding:9px 30px;
+    font-size:17px;
+    line-height:1.18;
+  }
   .chara-pop { animation:charabounce 1s ease-in-out infinite; filter:drop-shadow(0 6px 10px rgba(170,120,190,.3)); }
   .privacy-banner {
     position:fixed; left:50%; bottom:max(12px,env(safe-area-inset-bottom,0px));
@@ -678,41 +967,58 @@
   <canvas id="game"></canvas>
 
   <div id="title" class="overlay">
+    <div class="coin-row sm title-coin-badge"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="title-coin">0</span></div>
     <div class="panel title-menu">
       <div class="title-hero">
-        <img class="title-logo-img" src="Asset/title-logo-transparent.png" alt="">
-        <img class="title-characters-img" src="Asset/title-characters-transparent.png" alt="">
+        <img class="title-logo-img" src="Asset/logo (2).PNG" alt="">
       </div>
       <div class="title-meta">
         <div class="best" id="title-best"></div>
-        <div class="coin-row sm"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="title-coin">0</span></div>
       </div>
       <div class="howto-card">
         <div class="howto-label">ゲームの遊び方</div>
-        <div class="howto-board" aria-hidden="true">
-          <span class="howto-piece"><img src="Asset/chara1_sub.PNG" alt=""></span>
-          <span class="howto-piece"><img src="Asset/chara3_sub.PNG" alt=""></span>
-          <span class="howto-piece"><img src="Asset/chara5_sub.PNG" alt=""></span>
-          <span class="howto-piece match"><img src="Asset/chara2_sub.PNG" alt=""></span>
-          <span class="howto-piece match"><img src="Asset/chara2_sub.PNG" alt=""></span>
-          <span class="howto-piece match"><img src="Asset/chara2_sub.PNG" alt=""></span>
-          <span class="howto-piece"><img src="Asset/chara4_sub.PNG" alt=""></span>
-          <span class="howto-piece"><img src="Asset/chara3_sub.PNG" alt=""></span>
-          <span class="howto-piece"><img src="Asset/chara1_sub.PNG" alt=""></span>
-        </div>
-        <div class="howto-text">
-          同じ種類のピースを<br>3つそろえて消そう！
-          <div class="howto-sub">
-            <img class="howto-special" src="Asset/star_display.png" alt="">
-            <span>スターで上下左右をたくさん消そう！</span>
+        <div class="howto-pages">
+          <div class="howto-page">
+            <div class="howto-board" aria-hidden="true">
+              <span class="howto-piece"><img src="Asset/chara1_sub.PNG" alt=""></span>
+              <span class="howto-piece"><img src="Asset/chara3_sub.PNG" alt=""></span>
+              <span class="howto-piece"><img src="Asset/chara5_sub.PNG" alt=""></span>
+              <span class="howto-piece match"><img src="Asset/chara2_sub.PNG" alt=""></span>
+              <span class="howto-piece match"><img src="Asset/chara2_sub.PNG" alt=""></span>
+              <span class="howto-piece match"><img src="Asset/chara2_sub.PNG" alt=""></span>
+              <span class="howto-piece"><img src="Asset/chara4_sub.PNG" alt=""></span>
+              <span class="howto-piece"><img src="Asset/chara3_sub.PNG" alt=""></span>
+              <span class="howto-piece"><img src="Asset/chara1_sub.PNG" alt=""></span>
+            </div>
+            <div class="howto-text">
+              同じ種類のピースを<br>3つそろえて消そう！
+              <div class="howto-sub">
+                <img class="howto-special" src="Asset/star_display.png" alt="">
+                <span>スライドで次の説明へ</span>
+              </div>
+            </div>
           </div>
+          <div class="howto-page howto-special-page">
+            <div class="howto-special-list">
+              <div class="howto-special-row"><img class="special-icon" src="Asset/star_display.png" alt=""><span>4つでスター<br>上下左右を消す</span></div>
+              <div class="howto-special-row"><img class="special-icon" src="Asset/special-bomb.png" alt=""><span>横5こで爆弾<br>まわりを広く消す</span></div>
+              <div class="howto-special-row"><img class="special-icon" src="Asset/special-time.png" alt=""><span>縦5こで時間<br>+8秒ふえる</span></div>
+              <div class="howto-special-row"><img class="special-icon" src="Asset/special-color.png" alt=""><span>たまに同色消去<br>1色まとめて消す</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="howto-dots">
+          <button class="howto-dot on" type="button" aria-label="遊び方 1ページ目"></button>
+          <button class="howto-dot" type="button" aria-label="遊び方 2ページ目"></button>
         </div>
       </div>
       <div class="title-actions">
         <button id="btn-new-game" class="title-start">はじめから</button>
         <button id="btn-continue" class="title-continue">つづきから</button>
-        <button id="btn-ranking" class="title-ranking">スコアランキング</button>
-        <button id="btn-shop" class="title-shop">ショップ</button>
+        <div class="title-secondary-actions">
+          <button id="btn-ranking" class="title-ranking">ランキング</button>
+          <button id="btn-shop" class="title-shop">ショップ</button>
+        </div>
       </div>
       <button id="promo-banner" class="promo-banner" type="button">
         <img id="promo-icon" class="promo-icon" src="" alt="">
@@ -771,7 +1077,10 @@
       <div class="big-score" id="clear-score"></div>
       <div class="coin-row"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="clear-coin"></span></div>
       <div class="best" id="clear-coin-total"></div>
-      <button id="btn-next">つぎへすすむ</button>
+      <div class="menu-actions">
+        <button id="btn-next">つぎへすすむ</button>
+        <button id="btn-clear-title" class="secondary-btn">保存して<br>タイトルに戻る</button>
+      </div>
     </div>
   </div>
 
@@ -1272,6 +1581,15 @@ function openRanking(){
 }
 function closeRanking(){
   document.getElementById("ranking").classList.add("hidden");
+}
+let howtoPage = 0;
+let howtoStartX = 0;
+function setHowtoPage(page){
+  howtoPage = page ? 1 : 0;
+  const card = document.querySelector(".howto-card");
+  if(card) card.dataset.page = String(howtoPage);
+  const dots = document.querySelectorAll(".howto-dot");
+  dots.forEach((dot, i)=>dot.classList.toggle("on", i===howtoPage));
 }
 // SHOPブースト: 次に開始するステージ1回だけ有効
 const PRICE_TIME = 300, PRICE_LIFE = 400;
@@ -1825,7 +2143,7 @@ function stageClear(){
   gaEvent("addProgressionEvent", "Complete", gaStageId());
   gaEvent("addDesignEvent", "stage:clear:score", score);
   sndClearStage();
-  document.getElementById("clear-score").textContent = score+" てん！";
+  document.getElementById("clear-score").textContent = "ステージ"+level+"\nスコア "+score+"てん";
   saveProgress(level);
   syncLeaderboardScore("stage_clear");
   const earned = coinReward(score);
@@ -1947,14 +2265,14 @@ const PROMO_APPS = [
   {
     id: "6789935783",
     title: "コスミー MOGU MOGU PANIC",
-    caption: "このキャラのパズルゲーム",
+    caption: "このキャラクターの他のゲーム",
     icon: "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/ba/5b/56/ba5b56bc-e134-d397-a057-1fdcd6cad6e6/AppIcon-0-0-1x_U007epad-0-1-85-220.png/256x256bb.jpg",
     url: "https://apps.apple.com/jp/app/id6789935783"
   },
   {
     id: "6790154239",
     title: "Cosmii Arcade",
-    caption: "ミニゲームがいっぱい",
+    caption: "このキャラクターの他のゲーム",
     icon: "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/41/a7/1e/41a71edd-d8a5-f75a-7b55-d6fcbf5f15c7/AppIcon-0-0-1x_U007epad-0-1-85-220.png/256x256bb.jpg",
     url: "https://apps.apple.com/jp/app/id6790154239"
   }
@@ -2183,6 +2501,20 @@ document.getElementById("ranking-name-input").addEventListener("keydown", e=>{
     document.getElementById("btn-ranking-save").click();
   }
 });
+document.querySelectorAll(".howto-dot").forEach((dot, i)=>{
+  dot.addEventListener("click", e=>{
+    e.stopPropagation();
+    setHowtoPage(i);
+  });
+});
+const howtoCard = document.querySelector(".howto-card");
+if(howtoCard){
+  howtoCard.addEventListener("pointerdown", e=>{ howtoStartX = e.clientX; });
+  howtoCard.addEventListener("pointerup", e=>{
+    const dx = e.clientX - howtoStartX;
+    if(Math.abs(dx) > 35) setHowtoPage(dx < 0 ? 1 : 0);
+  });
+}
 document.getElementById("btn-buy-time").addEventListener("click", ()=>{ audio(); buyBoost("time"); });
 document.getElementById("btn-buy-life").addEventListener("click", ()=>{ audio(); buyBoost("life"); });
 
@@ -2239,6 +2571,10 @@ document.getElementById("btn-next").addEventListener("click", ()=>{
   hideVolumePanel();
   document.getElementById("clear").classList.add("hidden");
   level++; startLevel();
+});
+document.getElementById("btn-clear-title").addEventListener("click", ()=>{
+  document.getElementById("clear").classList.add("hidden");
+  returnToTitle();
 });
 document.getElementById("btn-retry").addEventListener("click", ()=>{
   audio();
