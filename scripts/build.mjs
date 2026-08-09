@@ -59,5 +59,10 @@ cpSync(
   join(root, "node_modules", "@supabase", "supabase-js", "dist", "umd", "supabase.js"),
   join(vendor, "supabase.js")
 );
+// GameAnalytics も同梱する（CDN からの実行時取得を避ける）
+cpSync(
+  join(root, "node_modules", "gameanalytics", "dist", "GameAnalytics.min.js"),
+  join(vendor, "GameAnalytics.min.js")
+);
 
 console.log("Built static site to dist/");

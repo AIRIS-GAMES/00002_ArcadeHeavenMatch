@@ -120,13 +120,52 @@
   @supports (height:100svh) {
     .overlay { min-height:100svh; }
   }
+  /* メニュー画面の背景はゲームプレイ中と同じ空グラデーションにそろえる */
   #title {
-    background:
-      linear-gradient(180deg,rgba(255,245,252,.18),rgba(238,248,255,.16)),
-      url("Asset/%E3%82%BF%E3%82%A4%E3%83%88%E3%83%AB.png") center center / cover no-repeat,
-      linear-gradient(180deg,#ffd5ea 0%,#ded5ff 46%,#c9f1dc 100%);
+    background:linear-gradient(180deg,#ffd5ea 0%,#ded5ff 46%,#c9f1dc 100%);
     backdrop-filter:none;
     overflow:hidden;
+  }
+  /* 起動直後の Title.png 画面（黒背景のロードが明けたら出る） */
+  .title-screen {
+    position:absolute; inset:0; z-index:1;
+    opacity:0; pointer-events:none;
+    transition:opacity .3s ease;
+  }
+  #title.title-ready .title-screen { opacity:1; pointer-events:auto; }
+  #title.show-menu .title-screen { opacity:0; pointer-events:none; }
+  .title-screen .title-art {
+    width:100%; height:100%; object-fit:cover; display:block;
+  }
+  .title-loading {
+    position:absolute; left:50%; bottom:14%;
+    transform:translateX(-50%);
+    width:min(62vw,320px);
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    pointer-events:none;
+  }
+  .title-loading-bar {
+    width:100%; height:12px;
+    border-radius:999px;
+    background:rgba(255,255,255,.55);
+    border:2px solid rgba(255,255,255,.9);
+    box-shadow:0 3px 10px rgba(120,80,160,.28);
+    overflow:hidden;
+  }
+  .title-loading-bar span {
+    display:block; width:0%; height:100%;
+    border-radius:999px;
+    background:linear-gradient(90deg,#ffd45e,#ff8fc0);
+    transition:width .25s ease;
+  }
+  .title-loading-text {
+    font-size:14px; font-weight:bold; color:#fff;
+    text-shadow:0 2px 6px rgba(90,50,130,.75);
+    letter-spacing:.04em;
+  }
+  @media (max-width:380px), (max-height:760px) {
+    .title-loading-text { font-size:12.5px; }
+    .title-loading-bar { height:10px; }
   }
   #title::before {
     content:"";
@@ -152,10 +191,14 @@
   }
   /* メニュー表示中は起動スプラッシュ背景を再生させない */
   #title.show-menu::before { animation:none; opacity:0; }
+  /* メニューの中身は画面の縦中央に置く（入り切らない端末だけ上寄せにする） */
   #title.show-menu {
-    justify-content:flex-start;
+    justify-content:center;
     overflow-y:auto;
     padding:calc(env(safe-area-inset-top,0px) + 8px) 14px calc(env(safe-area-inset-bottom,0px) + 12px + var(--ad-banner-h));
+  }
+  @media (max-height:760px) {
+    #title.show-menu { justify-content:center; }
   }
   #title .title-coin-badge {
     position:absolute;
@@ -187,25 +230,34 @@
   #title .title-menu {
     max-width:min(92vw,480px);
     width:92%;
+    max-height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - var(--ad-banner-h) - 20px);
     max-height:calc(100svh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - var(--ad-banner-h) - 20px);
-    margin-top:clamp(12px,2.5vh,28px);
-    margin-bottom:calc(24px + var(--ad-banner-h));
+    margin-top:auto;
+    margin-bottom:auto;
     padding:0;
     gap:14px;
     /* 収まらない場合は画面外に流さずスクロールさせる */
     overflow-y:auto;
     overscroll-behavior:contain;
     -webkit-overflow-scrolling:touch;
+    justify-content:center;
     background:transparent;
     border:0;
     box-shadow:none;
   }
   .title-hero {
     width:100%;
-    /* 縦が足りない端末ではロゴ領域から先に詰める（ボタンを画面内に残すため） */
-    flex:1 1 auto;
-    min-height:clamp(84px,18svh,260px);
+    flex:0 0 auto;
+    min-height:0;
     pointer-events:none;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  .title-hero img {
+    width:100%; height:100%;
+    /* Title.png は縦長のタイトル画面全体。ロゴ帯だけを切り出して見せる */
+    object-fit:cover; object-position:center 46%;
+    display:block;
   }
   /* 縦長スマホ（iPhone 14/15, mini 等）は縦が足りずボタンが画面外に出るため、
      幅ではなく高さを基準に遊び方カードとロゴを詰める */
@@ -220,7 +272,8 @@
     border:4px solid #ff9fc5;
     border-radius:24px;
     box-shadow:0 8px 18px rgba(180,120,170,.28);
-    overflow:hidden;
+    /* overflow:hidden をカードに掛けると上辺にせり出すラベルが切れるので、
+       はみ出し隠しは .howto-pages 側で行う */
     touch-action:pan-y;
   }
   .howto-label {
@@ -252,6 +305,7 @@
     width:100%;
     display:grid;
     grid-template-columns:1fr;
+    overflow:hidden;
   }
   .howto-page {
     grid-area:1 / 1;
@@ -280,7 +334,7 @@
     border:0;
     font-size:clamp(22px,7vw,34px);
     line-height:1;
-    overflow:hidden;
+    /* overflow:hidden にすると拡大したキャラの耳などが切れるので付けない */
   }
   /* 素材のアスペクト比が2種類（正方形 / 横長）混在しており、contain のままだと
      横長素材のキャラだけ小さく見える。枠内に収めたうえで横長側を拡大して見た目を揃える */
@@ -290,14 +344,35 @@
     object-fit:contain;
     display:block;
     filter:drop-shadow(0 2px 3px rgba(120,80,130,.22));
-    transform:scale(1.26);
   }
-  /* 横長素材(chara2/chara4)は contain で縦が 0.73 倍になるぶんを補正 */
+  /* 横長素材(chara2/chara4)は contain で縦が 0.73 倍になるぶん、高さだけ揃える */
   .howto-piece img[src*="chara2_sub"],
   .howto-piece img[src*="chara4_sub"] {
-    transform:scale(1.34);
+    transform:scale(1.17);
   }
-  .howto-piece.match { background:transparent; }
+  /* そろっている3つを強調（点滅させず、ゆっくりした拡縮＋発光で目を引く） */
+  .howto-piece.match {
+    position:relative;
+    z-index:1;
+    animation:matchPulse 1.6s ease-in-out infinite;
+  }
+  .howto-piece.match::before {
+    content:"";
+    position:absolute; inset:-2px;
+    border-radius:50%;
+    background:radial-gradient(circle,rgba(255,255,255,.95) 40%,rgba(255,236,150,.7) 70%,rgba(255,214,90,0) 100%);
+    box-shadow:0 0 8px rgba(255,206,70,.9);
+    z-index:-1;
+  }
+  .howto-piece.match img {
+    filter:drop-shadow(0 2px 3px rgba(120,80,130,.22)) drop-shadow(0 0 4px rgba(255,220,110,.95));
+  }
+  /* そろっていないピースは少し控えめにして対比をつける */
+  .howto-piece:not(.match) { opacity:.62; }
+  @keyframes matchPulse {
+    0%,100% { transform:scale(1); }
+    50%     { transform:scale(1.09); }
+  }
   .howto-text {
     text-align:left;
     color:#7a4f40;
@@ -404,19 +479,11 @@
     box-shadow:0 8px 0 #eda5c8, 0 12px 18px rgba(230,150,190,.26);
     text-shadow:0 2px 0 #fff;
   }
+  /* ボタン左の ▶ アイコンは表示しない（文字だけで十分伝わるため） */
   #title .title-continue::before,
   #title .title-start::before {
-    content:"▶";
-    display:inline-flex; align-items:center; justify-content:center;
-    width:46px; height:46px; margin-right:12px;
-    border-radius:14px;
-    background:#fff;
-    color:#ff8fc0;
-    text-shadow:none;
-    font-size:24px;
-    vertical-align:middle;
+    content:none;
   }
-  #title .title-continue::before { color:#f2a7cc; }
   #title .title-ranking {
     min-height:62px;
     border-radius:22px;
@@ -439,6 +506,26 @@
   #title .title-continue:active { box-shadow:0 2px 0 #eda5c8; }
   #title .title-ranking:active,
   #title .title-shop:active { box-shadow:0 2px 0 #8c72d6; }
+  /* Title.png のロゴ帯だけを切り出してメニュー見出しにする（新規素材なし） */
+  /* メニューの見出し。遊び方ラベルと同じピル形にそろえる */
+  .menu-title {
+    flex:0 0 auto;
+    align-self:center;
+    min-width:176px;
+    padding:8px 26px;
+    border-radius:18px;
+    background:linear-gradient(180deg,#ff9ac4,#ff6fa8);
+    color:#fff; font-size:22px; font-weight:bold;
+    letter-spacing:.06em;
+    text-shadow:0 2px 0 rgba(190,70,120,.35);
+    box-shadow:0 4px 0 #e55c9c, 0 8px 16px rgba(200,110,160,.28);
+  }
+  @media (max-width:480px) {
+    .menu-title { font-size:20px; padding:7px 22px; min-width:152px; }
+  }
+  @media (max-width:380px), (max-height:760px) {
+    .menu-title { font-size:18px; padding:6px 18px; min-width:132px; border-radius:15px; }
+  }
   .title-meta {
     display:flex; align-items:center; justify-content:center; gap:12px;
     min-height:34px;
@@ -470,7 +557,7 @@
       margin-bottom:10px;
       gap:7px;
     }
-    .title-hero { min-height:clamp(120px,22svh,200px); }
+    .title-hero { min-height:0; }
     .howto-card {
       padding:16px 10px 10px;
       border-width:3px;
@@ -491,9 +578,9 @@
       gap:8px;
     }
     .howto-piece { border-radius:0; border-width:0; }
-    .howto-piece img { width:100%; height:100%; transform:scale(1.3); }
+    .howto-piece img { width:100%; height:100%; }
     .howto-piece img[src*="chara2_sub"],
-    .howto-piece img[src*="chara4_sub"] { transform:scale(1.38); }
+    .howto-piece img[src*="chara4_sub"] { transform:scale(1.17); }
     .howto-text {
       text-align:left;
       font-size:15px;
@@ -538,8 +625,8 @@
     #title #btn-continue small { font-size:13px; margin-top:2px; padding:2px 10px; }
   }
   @media (max-width:380px), (max-height:760px) {
-    #title .title-menu { gap:6px; margin-top:4px; }
-    .title-hero { min-height:clamp(64px,13svh,132px); }
+    #title .title-menu { gap:6px; margin-top:auto; margin-bottom:auto; }
+    .title-hero { min-height:0; }
     .title-meta { min-height:30px; }
     #title .title-meta .best { font-size:13.5px; padding:4px 13px; }
     #title .title-meta .best b { font-size:16px; }
@@ -576,8 +663,8 @@
     #title .title-menu {
       width:min(94%,360px);
       gap:5px;
-      margin-top:0;
-      margin-bottom:calc(8px + var(--ad-banner-h));
+      margin-top:auto;
+      margin-bottom:auto;
     }
     #title .title-coin-badge {
       top:calc(env(safe-area-inset-top,0px) + 6px);
@@ -585,7 +672,7 @@
       min-width:66px;
       padding:4px 8px;
     }
-    .title-hero { min-height:clamp(54px,11svh,104px); }
+    .title-hero { min-height:0; }
     .title-meta { min-height:27px; }
     #title .title-meta .best { font-size:12.5px; padding:3px 11px; }
     #title .title-meta .best b { font-size:15px; }
@@ -633,8 +720,9 @@
       min-height:44px;
       border-radius:16px;
       font-size:19px;
-      box-shadow:0 4px 0 #df8b11, 0 6px 10px rgba(218,132,24,.2);
     }
+    #title .title-start { box-shadow:0 4px 0 #d95b95, 0 6px 10px rgba(230,120,170,.22); }
+    #title .title-continue { box-shadow:0 4px 0 #eda5c8, 0 6px 10px rgba(230,150,190,.2); }
     #title .title-start::before,
     #title .title-continue::before {
       width:28px;
@@ -671,8 +759,10 @@
     #title .title-menu {
       width:min(94%,340px);
       gap:4px;
+      margin-top:auto;
+      margin-bottom:auto;
     }
-    .title-hero { min-height:clamp(44px,9svh,80px); }
+    .title-hero { min-height:0; }
     .title-meta { min-height:24px; }
     #title .title-meta .best { font-size:11.5px; padding:3px 10px; border-width:1.5px; }
     #title .title-meta .best b { font-size:13.5px; }
@@ -691,9 +781,9 @@
       grid-template-columns:60px minmax(0,1fr);
       gap:5px;
     }
-    .howto-piece img { width:100%; height:100%; transform:scale(1.24); }
+    .howto-piece img { width:100%; height:100%; }
     .howto-piece img[src*="chara2_sub"],
-    .howto-piece img[src*="chara4_sub"] { transform:scale(1.32); }
+    .howto-piece img[src*="chara4_sub"] { transform:scale(1.17); }
     .howto-text { font-size:11px; line-height:1.18; }
     .howto-sub {
       margin-top:3px;
@@ -953,45 +1043,6 @@
     line-height:1.15;
   }
   .menu-actions { display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; }
-  .volume-control {
-    width:100%;
-    display:flex; align-items:center; gap:10px;
-    padding:6px 2px;
-    color:#9b6fc9; font-size:13px; font-weight:bold;
-  }
-  .volume-control input { flex:1; accent-color:#ff8fc0; }
-  #volume-value { min-width:38px; text-align:right; color:#7a5ea8; }
-  #volume-panel {
-    position:fixed; right:10px; top:calc(env(safe-area-inset-top,0px) + 58px);
-    /* 下端が広告に重ならないよう、どの画面幅でも高さを制限する */
-    max-height:calc(100svh - env(safe-area-inset-top,0px) - var(--ad-banner-h) - 78px);
-    overflow:auto;
-    z-index:8; width:min(72vw,240px);
-    padding:12px;
-    background:rgba(255,255,255,.95);
-    border:3px solid #ffd2ea;
-    border-radius:18px;
-    box-shadow:0 10px 28px rgba(170,120,190,.32);
-    pointer-events:auto;
-  }
-  #volume-panel.hidden { display:none; }
-  #volume-panel .volume-control { padding:0 0 8px; }
-  #btn-volume-mute {
-    width:100%; padding:9px 16px; font-size:15px;
-    box-shadow:0 4px 0 #e873a8, 0 7px 12px rgba(230,120,170,.28);
-  }
-  @media (max-width:480px) {
-    #volume-panel {
-      top:auto; right:50%;
-      bottom:calc(max(14px,env(safe-area-inset-bottom,0px)) + var(--ad-banner-h) + 12px);
-      max-height:calc(100svh - var(--ad-banner-h) - 120px);
-      transform:translateX(50%);
-      width:min(88vw,320px);
-      padding:10px;
-    }
-    #volume-panel .volume-control { padding-bottom:7px; }
-    #btn-volume-mute { padding:8px 14px; }
-  }
   button {
     font-family:inherit; font-size:20px; font-weight:bold; color:#fff;
     background:linear-gradient(180deg,#ffb1d8,#ff8fc0);
@@ -1052,8 +1103,11 @@
   /* 縦長スマホ（iPhone 8/SE/mini/14 等）は縦が足りずボタンが画面外に出るため、
      幅ではなく高さを基準に詰める。ボタンは padding が高さを決めるので padding を削る */
   @media (max-width:480px) and (max-height:900px) {
-    #title .title-menu { gap:5px; }
-    .title-hero { min-height:clamp(130px,23svh,210px); }
+    #title .title-menu { gap:12px; }
+    .title-actions { gap:11px; }
+    .title-secondary-actions { gap:11px; }
+    .title-hero { min-height:0; }
+    .title-meta { margin-top:0; margin-bottom:8px; }
     .howto-card { padding:14px 9px 8px; }
     .howto-board { width:76px; }
     .howto-page { grid-template-columns:76px minmax(0,1fr); gap:7px; }
@@ -1063,11 +1117,11 @@
     .howto-label { font-size:15px; padding:4px 12px; min-width:126px; }
     #title .title-start,
     #title .title-continue {
-      min-height:0; padding:9px 20px; font-size:20px;
+      min-height:0; padding:13px 20px; font-size:21px;
     }
     #title .title-ranking,
     #title .title-shop {
-      min-height:0; padding:8px 12px; font-size:15px;
+      min-height:0; padding:11px 12px; font-size:16px;
     }
     #title .title-start::before,
     #title .title-continue::before { width:28px; height:28px; font-size:15px; margin-right:7px; }
@@ -1079,8 +1133,8 @@
   }
   /* iPhone 8/SE1 相当（縦568px級）はさらに詰める */
   @media (max-width:480px) and (max-height:600px) {
-    #title .title-menu { gap:4px; margin-top:2px; margin-bottom:6px; }
-    .title-hero { min-height:clamp(38px,7svh,66px); }
+    #title .title-menu { gap:4px; margin-top:auto; margin-bottom:auto; }
+    .title-hero { min-height:0; }
     .title-meta { min-height:20px; }
     #title .title-meta .best { font-size:10.5px; padding:2px 9px; }
     #title .title-meta .best b { font-size:12.5px; }
@@ -1134,22 +1188,20 @@
     <button id="btn-pause" class="hud-btn" type="button" aria-label="一時停止">Ⅱ</button>
   </div>
 
-  <div id="volume-panel" class="hidden">
-    <label class="volume-control" for="bgm-volume">
-      <span>BGM</span>
-      <input id="bgm-volume" type="range" min="0" max="100" value="28">
-      <span id="volume-value">28%</span>
-    </label>
-    <button id="btn-volume-mute" type="button">ミュート</button>
-  </div>
-
   <audio id="bgm" src="Asset/BGM.mp3" loop preload="auto"></audio>
   <canvas id="game"></canvas>
 
   <div id="title" class="overlay">
+    <div class="title-screen">
+      <img class="title-art" src="Asset/Title.png" alt="">
+      <div class="title-loading" role="status" aria-live="polite">
+        <div class="title-loading-bar"><span id="title-loading-fill"></span></div>
+        <div class="title-loading-text">よみこみちゅう…</div>
+      </div>
+    </div>
     <div class="coin-row sm title-coin-badge"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="title-coin">0</span></div>
     <div class="panel title-menu">
-      <div class="title-hero" aria-hidden="true"></div>
+      <div class="menu-title">メニュー</div>
       <div class="title-meta">
         <div class="best" id="title-best"></div>
       </div>
@@ -1178,10 +1230,10 @@
           </div>
           <div class="howto-page howto-special-page">
             <div class="howto-special-list">
-              <div class="howto-special-row"><img class="special-icon" src="Asset/star_display.png" alt=""><span>4つでスター<br>上下左右を消す</span></div>
-              <div class="howto-special-row"><img class="special-icon" src="Asset/special-bomb.png" alt=""><span>横5こで爆弾<br>まわりを広く消す</span></div>
-              <div class="howto-special-row"><img class="special-icon" src="Asset/special-time.png" alt=""><span>縦5こで時間<br>+8秒ふえる</span></div>
-              <div class="howto-special-row"><img class="special-icon" src="Asset/special-color.png" alt=""><span>たまに同色消去<br>1色まとめて消す</span></div>
+              <div class="howto-special-row"><img class="special-icon" src="Asset/star_display.png" alt=""><span>4こそろえる<br>上下左右を消す</span></div>
+              <div class="howto-special-row"><img class="special-icon" src="Asset/game-bomb.png" alt=""><span>ヨコ5こそろえる<br>まわり3×3を消す</span></div>
+              <div class="howto-special-row"><img class="special-icon" src="Asset/game-time.png" alt=""><span>タテ5こそろえる<br>じかんが+8びょう</span></div>
+              <div class="howto-special-row"><img class="special-icon" src="Asset/game-color-clear.png" alt=""><span>ときどきあらわれる<br>同じ色をすべて消す</span></div>
             </div>
           </div>
         </div>
@@ -1224,7 +1276,7 @@
 
   <div id="shop" class="overlay hidden">
     <div class="panel">
-      <h2>SHOP</h2>
+      <h2>ショップ</h2>
       <div class="coin-row sm"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="shop-coin">0</span></div>
       <div class="menu-actions">
         <button id="btn-buy-time" class="shop-item" type="button"></button>
@@ -1237,10 +1289,10 @@
 
   <div id="ranking" class="overlay hidden">
     <div class="panel ranking-panel">
-      <h2>RANKING</h2>
+      <h2>ランキング</h2>
       <div class="ranking-name">
         <input id="ranking-name-input" type="text" maxlength="12" autocomplete="off" spellcheck="false" aria-label="ランキング名">
-        <button id="btn-ranking-save" type="button">SAVE</button>
+        <button id="btn-ranking-save" type="button">とうろく</button>
       </div>
       <div class="ranking-status" id="ranking-status"></div>
       <div class="ranking-list" id="ranking-list"></div>
@@ -1257,7 +1309,7 @@
       <div class="best" id="clear-coin-total"></div>
       <div class="menu-actions">
         <button id="btn-next">つぎへすすむ</button>
-        <button id="btn-clear-title" class="secondary-btn">保存して<br>タイトルに戻る</button>
+        <button id="btn-clear-title" class="secondary-btn">保存して<br>メニューに戻る</button>
       </div>
     </div>
   </div>
@@ -1270,7 +1322,7 @@
       <div class="best" id="over-best"></div>
       <div class="menu-actions">
         <button id="btn-retry">もういちど</button>
-        <button id="btn-over-menu" class="secondary-btn">メニューへ</button>
+        <button id="btn-over-menu" class="secondary-btn">メニューに戻る</button>
       </div>
     </div>
   </div>
@@ -1280,7 +1332,7 @@
       <h2>いちじていし</h2>
       <div class="menu-actions">
         <button id="btn-resume">つづける</button>
-        <button id="btn-title-back" class="secondary-btn">タイトルに戻る</button>
+        <button id="btn-title-back" class="secondary-btn">メニューに戻る</button>
       </div>
     </div>
   </div>
@@ -1300,7 +1352,7 @@
 
   <div id="ingame-shop" class="overlay hidden">
     <div class="panel">
-      <h2>SHOP</h2>
+      <h2>ショップ</h2>
       <div class="sub">いますぐつかえるよ</div>
       <div class="coin-row sm"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="ingame-coin">0</span></div>
       <div class="menu-actions">
@@ -1378,27 +1430,14 @@ let AC = null;
 let masterGain = null;
 let masterLimiter = null;
 let sfxGain = null;
+let audioUnlocked = false;
 const bgm = document.getElementById("bgm");
 let muted = localStorage.getItem("ohanapon-muted")==="1";
-const AUDIO_BALANCE_KEY = "ohanapon-audio-balance";
 const BGM_DEFAULT_VOLUME = 0.18;
 const SFX_MASTER_VOLUME = 0.42;
-let bgmVolume = Math.min(1, Math.max(0, +(localStorage.getItem("ohanapon-bgm-volume")||BGM_DEFAULT_VOLUME)));
-if(localStorage.getItem(AUDIO_BALANCE_KEY)!=="3"){
-  bgmVolume = Math.min(bgmVolume, BGM_DEFAULT_VOLUME);
-  localStorage.setItem("ohanapon-bgm-volume", String(bgmVolume));
-  localStorage.setItem(AUDIO_BALANCE_KEY, "3");
-}
 function setBgmElementVolume(){
-  if(bgm) bgm.volume = bgmVolume;
-}
-function syncVolumeUI(){
-  const slider=document.getElementById("bgm-volume");
-  const label=document.getElementById("volume-value");
-  const pct=Math.round(bgmVolume*100);
-  if(slider) slider.value = String(pct);
-  if(label) label.textContent = pct+"%";
-  setBgmElementVolume();
+  if(!bgm) return;
+  bgm.volume = BGM_DEFAULT_VOLUME;
 }
 function applyMuted(){
   if(bgm) bgm.muted = muted;
@@ -1406,19 +1445,10 @@ function applyMuted(){
   if(sfxGain) sfxGain.gain.value = muted ? 0 : SFX_MASTER_VOLUME;
   const b=document.getElementById("btn-mute");
   if(b) b.textContent = muted ? "🔇" : "🔊";
-  const mb=document.getElementById("btn-volume-mute");
-  if(mb) mb.textContent = muted ? "ミュート解除" : "ミュート";
-  syncVolumeUI();
-}
-function toggleVolumePanel(){
-  const panel=document.getElementById("volume-panel");
-  if(!panel) return;
-  syncVolumeUI();
-  panel.classList.toggle("hidden");
+  setBgmElementVolume();
 }
 function hideVolumePanel(){
-  const panel=document.getElementById("volume-panel");
-  if(panel) panel.classList.add("hidden");
+  // 音量パネルは廃止。既存の呼び出しだけ安全に受ける。
 }
 function toggleMute(){
   muted = !muted;
@@ -1447,6 +1477,22 @@ function audio(){
     }catch(e){}
   }
   if(AC&&AC.state==="suspended") AC.resume().catch(()=>{});
+  return AC;
+}
+function unlockAudio(){
+  const ctx = audio();
+  if(!ctx || audioUnlocked) return;
+  const playSilent = ()=>{
+    try{
+      const src = ctx.createBufferSource();
+      src.buffer = ctx.createBuffer(1, 1, Math.max(1, ctx.sampleRate || 44100));
+      src.connect(sfxGain || masterGain || ctx.destination);
+      src.start(0);
+      audioUnlocked = true;
+    }catch(e){}
+  };
+  if(ctx.state==="suspended") ctx.resume().then(playSilent).catch(()=>{});
+  else playSilent();
 }
 function playBgm(){
   if(!bgm || muted) return;
@@ -1462,10 +1508,14 @@ function stopBgm(){
   bgm.pause();
   if(bgm.src) bgm.currentTime = 0;
 }
-function tone(freq, dur, type, vol, when){
+function tone(freq, dur, type, vol, when, retry){
   if(muted) return;
   audio();
   if(!AC || !sfxGain) return;
+  if(AC.state==="suspended"){
+    if(!retry) AC.resume().then(()=>tone(freq, dur, type, vol, when, true)).catch(()=>{});
+    return;
+  }
   const t = AC.currentTime + (when||0);
   const o = AC.createOscillator(), g = AC.createGain();
   o.type = type==="square" ? "triangle" : (type||"sine");
@@ -1494,8 +1544,8 @@ function sndHorror(){
   tone(330,.12,"triangle",.12);
   tone(247,.16,"sine",.10,.06);
 }
-["pointerdown","touchend","keydown"].forEach(ev=>{
-  window.addEventListener(ev, audio, { passive:true });
+["pointerdown","touchstart","touchend","mousedown","keydown"].forEach(ev=>{
+  window.addEventListener(ev, unlockAudio, { capture:true, passive:true });
 });
 ["visibilitychange","pageshow","focus"].forEach(ev=>{
   window.addEventListener(ev, ()=>{
@@ -2409,7 +2459,6 @@ function pauseGame(){
   pausedState = state;
   state = "paused";
   hideVolumePanel();
-  syncVolumeUI();
   document.getElementById("pause").classList.remove("hidden");
 }
 
@@ -2424,9 +2473,11 @@ function resumeGame(){
 
 function showTitleMenu(){
   const title = document.getElementById("title");
+  // ゲームから戻るときはローディングを挟まず、メニューを直接出す
   title.classList.remove("hidden");
-  title.classList.add("show-menu","no-splash");
+  title.classList.add("title-ready","no-splash","show-menu");
   refreshMenu();
+  trackPromoImpression(PROMO_APPS[promoIndex]);
 }
 
 function returnToTitle(){
@@ -2462,6 +2513,7 @@ function returnToTitle(){
 const PROMO_APPS = [
   {
     id: "6789935783",
+    slug: "mogumogu",
     title: "コスミー MOGU MOGU PANIC",
     caption: "このキャラクターの他のゲーム",
     icon: "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/ba/5b/56/ba5b56bc-e134-d397-a057-1fdcd6cad6e6/AppIcon-0-0-1x_U007epad-0-1-85-220.png/256x256bb.jpg",
@@ -2469,6 +2521,7 @@ const PROMO_APPS = [
   },
   {
     id: "6790154239",
+    slug: "arcade",
     title: "Cosmii Arcade",
     caption: "このキャラクターの他のゲーム",
     icon: "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/41/a7/1e/41a71edd-d8a5-f75a-7b55-d6fcbf5f15c7/AppIcon-0-0-1x_U007epad-0-1-85-220.png/256x256bb.jpg",
@@ -2476,6 +2529,7 @@ const PROMO_APPS = [
   },
   {
     id: "6792287027",
+    slug: "beatdash",
     title: "Cosmii Beat Dash",
     caption: "このキャラクターの他のゲーム",
     icon: "https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/eb/cc/42/ebcc425d-8759-7487-6b29-298418a40f6a/AppIcon-0-0-1x_U007epad-0-1-85-220.png/512x512bb.jpg",
@@ -2483,6 +2537,7 @@ const PROMO_APPS = [
   },
   {
     id: "6797260932",
+    slug: "sudoku",
     title: "Cosmii Sudoku",
     caption: "このキャラクターの他のゲーム",
     icon: "https://is1-ssl.mzstatic.com/image/thumb/Purple221/v4/be/56/03/be56034c-22cd-4cd3-c7c4-e27dade4fbb8/AppIcon-0-0-1x_U007epad-0-1-85-220.png/512x512bb.jpg",
@@ -2491,7 +2546,7 @@ const PROMO_APPS = [
 ];
 // 10ステージごとのPR画面。この順番で1本ずつ巡回する
 const FULL_PROMO_ORDER = ["6792287027", "6789935783", "6797260932", "6790154239"];
-const FULL_PROMO_EVERY = 1; // TODO: テスト用。確認後に 10 へ戻すこと
+const FULL_PROMO_EVERY = 10;
 let fullPromoIdx = +(localStorage.getItem("ohanapon-fullpromo-idx")||0);
 let pendingNextStage = false;
 
@@ -2513,19 +2568,34 @@ function showFullPromo(){
   const btn = document.getElementById("btn-full-promo-open");
   btn.onclick = () => {
     audio();
-    gaEvent("addDesignEvent", "promo_full:click:" + app.id);
+    gaEvent("addDesignEvent", "promo:full:click:" + promoSlug(app));
     openExternal(app.url);
   };
-  gaEvent("addDesignEvent", "promo_full:show:" + app.id);
+  gaEvent("addDesignEvent", "promo:full:impression:" + promoSlug(app));
   document.getElementById("full-promo").classList.remove("hidden");
   return true;
 }
 const PROMO_INTERVAL = 4500;
 let promoIndex = 0, promoTimer = 0, promoFadeTimer = 0;
 
+// クリック率(CTR)を出すため、表示回数と遷移回数を同じ粒度で記録する。
+// slug 単位で promo:<面>:impression / :click を送り、click ÷ impression で算出できる。
+function promoSlug(app){ return (app && (app.slug || app.id)) || "unknown"; }
+// バナーが実際に見えているときだけ表示回数に数える（プレイ中は数えない）
+function promoBannerVisible(){
+  const t = document.getElementById("title");
+  if(!t || t.classList.contains("hidden") || !t.classList.contains("show-menu")) return false;
+  const el = document.getElementById("promo-banner");
+  return !!(el && el.getBoundingClientRect().width > 0);
+}
+function trackPromoImpression(app){
+  if(!promoBannerVisible()) return;
+  gaEvent("addDesignEvent", "promo:banner:impression:" + promoSlug(app));
+}
 function renderPromo(){
   const app = PROMO_APPS[promoIndex];
   if(!app) return;
+  trackPromoImpression(app);
   const icon = document.getElementById("promo-icon");
   icon.src = app.icon;
   icon.onerror = () => { icon.style.visibility = "hidden"; };
@@ -2553,6 +2623,7 @@ function showPromo(next){
 function startPromoRotation(){
   if(PROMO_APPS.length < 2 || promoTimer) return;
   promoTimer = setInterval(()=>{
+    if(!promoBannerVisible()) return;   // 見えていない間は切り替えない
     showPromo((promoIndex + 1) % PROMO_APPS.length);
   }, PROMO_INTERVAL);
 }
@@ -2567,7 +2638,7 @@ document.getElementById("promo-banner").addEventListener("click", ()=>{
   const app = PROMO_APPS[promoIndex];
   if(!app) return;
   audio();
-  gaEvent("addDesignEvent", "promo:click:" + app.id);
+  gaEvent("addDesignEvent", "promo:banner:click:" + promoSlug(app));
   openExternal(app.url);
 });
 renderPromo();
@@ -2649,14 +2720,21 @@ document.getElementById("btn-login-claim").addEventListener("click", ()=>{
   loginCloseTimer = setTimeout(()=>{
     document.getElementById("login-bonus").classList.add("hidden");
     document.getElementById("title").classList.add("show-menu");
+    trackPromoImpression(PROMO_APPS[promoIndex]);
   }, 1400);
 });
 
 //================ Menu / Shop ================
 function refreshMenu(){
   const bestEl = document.getElementById("title-best");
-  if(best>0) bestEl.innerHTML = "★ ベスト <b>"+best.toLocaleString()+"</b>";
-  else bestEl.textContent = "";
+  if(best>0){
+    bestEl.innerHTML = "★ ベスト <b>"+best.toLocaleString()+"</b>";
+    bestEl.style.display = "";
+  } else {
+    // 未プレイ時は空のバッジが残らないよう要素ごと隠す
+    bestEl.textContent = "";
+    bestEl.style.display = "none";
+  }
   document.getElementById("title-coin").textContent = coins;
   const cont = document.getElementById("btn-continue");
   if(progress > 0){
@@ -2848,20 +2926,91 @@ document.getElementById("btn-over-menu").addEventListener("click", ()=>{
 document.getElementById("btn-pause").addEventListener("click", pauseGame);
 document.getElementById("btn-resume").addEventListener("click", resumeGame);
 document.getElementById("btn-title-back").addEventListener("click", returnToTitle);
-document.getElementById("btn-mute").addEventListener("click", toggleVolumePanel);
-document.getElementById("btn-volume-mute").addEventListener("click", toggleMute);
-document.getElementById("bgm-volume").addEventListener("input", e=>{
-  bgmVolume = Math.min(1, Math.max(0, (+e.target.value||0)/100));
-  localStorage.setItem("ohanapon-bgm-volume", String(bgmVolume));
-  syncVolumeUI();
-});
+document.getElementById("btn-mute").addEventListener("click", toggleMute);
 applyMuted();
 refreshMenu();
 ensureSupabaseAuth();
+// 黒背景のロードが明けたら Title.png + TAP TO START を表示する
+// 黒背景が明けたら Title.png のローディング画面を表示する
 setTimeout(()=>{
   refreshMenu();
-  document.getElementById("title").classList.add("show-menu");
+  document.getElementById("title").classList.add("title-ready");
+  positionTitleLoading();
 }, 2000);
+(function(){
+  const art = document.querySelector(".title-art");
+  if(!art) return;
+  if(art.complete) positionTitleLoading();
+  else art.addEventListener("load", positionTitleLoading, {once:true});
+})();
+
+// Title.png は cover 表示のため画面比によって切り取られ方が変わる。
+// キャラクター帯（元画像の約58〜71%）の下に来るようバー位置を実測で決める。
+function positionTitleLoading(){
+  const img = document.querySelector(".title-art");
+  const load = document.querySelector(".title-loading");
+  if(!img || !load || !img.naturalWidth) return;
+  const r = img.getBoundingClientRect();
+  if(!r.height) return;
+  const scale = Math.max(r.width/img.naturalWidth, r.height/img.naturalHeight);
+  const dispH = img.naturalHeight*scale;
+  const extra = Math.max(0, dispH - r.height);     // 画面外にはみ出す総量
+  // キャラ帯の下端が画面の72%あたりに来るよう、切り取り位置(object-position)を決める。
+  // これで縦横比が変わってもキャラの下にバーの場所が残る。
+  const wantHidden = Math.min(extra, Math.max(0, dispH*0.715 - r.height*0.72));
+  img.style.objectPosition = extra > 0
+    ? "center " + Math.round((wantHidden/extra)*100) + "%"
+    : "center";
+  const hiddenTop = wantHidden;
+  const charBottom = dispH*0.715 - hiddenTop;      // キャラ帯の下端（画面座標）
+  const barH = load.getBoundingClientRect().height || 40;
+  const minTop = r.height*0.42;                     // 上に寄りすぎない
+  const maxTop = r.height - barH - 16;              // 画面外に出さない
+  const top = Math.min(maxTop, Math.max(minTop, charBottom + 22));
+  load.style.top = Math.round(top) + "px";
+  load.style.bottom = "auto";
+}
+window.addEventListener("resize", positionTitleLoading);
+
+// 画像の読み込み進捗をバーに反映する
+function trackLoadingProgress(){
+  const imgs = [...document.images];
+  const total = Math.max(1, imgs.length);
+  let done = 0;
+  const fill = document.getElementById("title-loading-fill");
+  const update = ()=>{ if(fill) fill.style.width = Math.min(100, Math.round(done/total*100)) + "%"; };
+  update();
+  return new Promise(resolve=>{
+    if(!imgs.length){ if(fill) fill.style.width = "100%"; return resolve(); }
+    imgs.forEach(img=>{
+      const mark = ()=>{ done++; update(); if(done>=total) resolve(); };
+      if(img.complete) mark();
+      else {
+        img.addEventListener("load", mark, {once:true});
+        img.addEventListener("error", mark, {once:true});   // 失敗しても進行を止めない
+      }
+    });
+  });
+}
+// ローディング完了後、自動でメニューへ（未受け取りならログインボーナスを先に出す）
+let titleAdvanced = false;
+function advanceFromTitle(){
+  if(titleAdvanced) return;
+  titleAdvanced = true;
+  const fill = document.getElementById("title-loading-fill");
+  if(fill) fill.style.width = "100%";
+  refreshMenu();
+  if(checkLoginBonus()){ showLoginBonus(); return; }
+  document.getElementById("title").classList.add("show-menu");
+  trackPromoImpression(PROMO_APPS[promoIndex]);
+}
+const MIN_LOADING_MS = 3200;   // 黒背景+タイトルを見せる最短時間
+const MAX_LOADING_MS = 8000;   // 通信が遅くても必ず進む保険
+Promise.all([
+  trackLoadingProgress(),
+  new Promise(r => setTimeout(r, MIN_LOADING_MS))
+]).then(advanceFromTitle);
+setTimeout(advanceFromTitle, MAX_LOADING_MS);
 //================ GameAnalytics ================
 const GA_GAME_KEY   = "70bc48224f5273e09113f1767610f4e9";
 const GA_SECRET_KEY = "2f878b1d85cf1525c9ee5094af2837ad917dfd3a";
@@ -2882,13 +3031,13 @@ function loadGameAnalytics(){
   };
   const s = document.createElement("script");
   s.async = true;
-  s.src = "https://unpkg.com/gameanalytics/dist/GameAnalytics.min.js";
+  s.src = "vendor/GameAnalytics.min.js";   // 同梱版（CDN依存を避ける）
   s.onerror = () => { gaLoaded = false; };
   document.head.appendChild(s);
   gaEvent("configureBuild", GA_BUILD);
   // 通貨・アイテム種別は initialize より前に登録する必要がある
   gaEvent("configureAvailableResourceCurrencies", ["coin"]);
-  gaEvent("configureAvailableResourceItemTypes", ["stage_clear","boost_time","boost_life"]);
+  gaEvent("configureAvailableResourceItemTypes", ["stage_clear","login_bonus","boost_time","boost_life"]);
   gaEvent("initialize", GA_GAME_KEY, GA_SECRET_KEY);
 }
 
