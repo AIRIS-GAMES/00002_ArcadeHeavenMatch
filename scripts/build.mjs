@@ -55,6 +55,20 @@ html = html
 
 writeFileSync(join(dist, "index.html"), html);
 cpSync(join(root, "Asset"), join(dist, "Asset"), { recursive: true });
+// Keep high-resolution source artwork in the repository, but ship the smaller
+// game-ready copies referenced by index.html to reduce install/download size.
+for (const file of [
+  "chara1_sub.PNG",
+  "chara2_sub.PNG",
+  "chara3_sub.PNG",
+  "chara4_sub.PNG",
+  "chara5_sub.PNG",
+  "star_display.png"
+]) {
+  rmSync(join(dist, "Asset", file), { force: true });
+}
+cpSync(join(root, "fonts"), join(dist, "fonts"), { recursive: true });
+cpSync(join(root, "src"), join(dist, "src"), { recursive: true });
 cpSync(
   join(root, "node_modules", "@supabase", "supabase-js", "dist", "umd", "supabase.js"),
   join(vendor, "supabase.js")

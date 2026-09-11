@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.js",
     "cap:sync": "npm run build && npx cap sync",
     "cap:open:android": "npm run cap:sync && npx cap open android",
     "cap:run:android": "npm run cap:sync && npx cap run android",
