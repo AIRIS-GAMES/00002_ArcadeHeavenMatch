@@ -1,0 +1,16 @@
+M PLUS Rounded 1c font source
+================================
+
+Font binaries (unmodified TTF files):
+https://github.com/google/fonts/tree/main/ofl/mplusrounded1c
+
+Downloaded files:
+- MPLUSRounded1c-Medium.ttf (weight 500)
+- MPLUSRounded1c-Bold.ttf (weight 700)
+- MPLUSRounded1c-ExtraBold.ttf (weight 800)
+
+License source:
+https://github.com/coz-m/MPLUS_FONTS/blob/master/OFL.txt
+
+Copyright 2021 The M+ FONTS Project Authors
+Licensed under the SIL Open Font License, Version 1.1.
