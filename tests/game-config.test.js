@@ -17,7 +17,7 @@ test("共通設定はコラボ固有情報を含まない", () => {
   assert.doesNotMatch(source, /ohsun|おっ！サン/i);
   assert.equal(GAME_CONFIG.stage.timeSeconds, 60);
   assert.equal(GAME_CONFIG.performance.activeFrameRate, 24);
-  assert.equal(GAME_CONFIG.performance.maxDpr, 1);
+  assert.equal(GAME_CONFIG.performance.maxDpr, 2);
   assert.equal(GAME_CONFIG.performance.reducedEffects, true);
 });
 

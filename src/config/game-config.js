@@ -37,7 +37,7 @@ export const GAME_CONFIG = Object.freeze({
   }),
   performance: Object.freeze({
     activeFrameRate: 24,
-    maxDpr: 1,
+    maxDpr: 2,
     particleDensity: 0.5,
     maxParticles: 150,
     reducedEffects: true

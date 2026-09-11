@@ -20,16 +20,18 @@ test("ゲーム描画は共通の常時省電力設定を使い、非表示時�
   assert.match(html, /now-lastRenderedAt<FRAME_INTERVAL_MS-1/);
 });
 
-test("24fps・DPR 1・軽量エフェクトを常時適用し、切替UIを生成しない", () => {
+test("24fps・DPR 2・軽量エフェクトを常時適用し、切替UIを生成しない", () => {
   assert.doesNotMatch(html, /id="btn-power-save"|id="btn-settings-power"|powerSaveEnabled/);
   assert.match(html, /const REDUCED_EFFECTS = GAME_CONFIG\.performance\.reducedEffects;/);
   assert.match(html, /DPR = Math\.min\(window\.devicePixelRatio\|\|1, MAX_RENDER_DPR\)/);
+  assert.match(html, /ctx\.imageSmoothingQuality = "high"/);
   assert.match(html, /baseCount\*PARTICLE_DENSITY/);
   assert.match(html, /if\(shakeT>0 && !REDUCED_EFFECTS\)/);
 });
 
 test("背景とおっ！サン配置はキャッシュを利用する", () => {
   assert.match(html, /const backgroundLayer = document\.createElement\("canvas"\)/);
+  assert.match(html, /backgroundLayer\.width=Math\.max\(1,Math\.ceil\(W\*DPR\)\)/);
   assert.match(html, /function getHudRectCached\(\)/);
   assert.match(html, /function getOhsunHeroLayoutCached\(\)/);
   assert.match(html, /cachedBackgroundKey=key/);

@@ -1842,6 +1842,8 @@ function resize(){
   cv.width = W*DPR; cv.height = H*DPR;
   cv.style.width = W+"px"; cv.style.height = H+"px";
   ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   const hud = document.getElementById("hud");
   const hudH = hud && hud.style.display!=="none" ? hud.offsetHeight : 76;
   const topPad = Math.max(86, hudH + 12), botPad = 24;
@@ -4333,11 +4335,14 @@ function drawGameBackground(){
   const showOhsunBackdrop = OHSUN_EVENT_CONFIG.backdrop.enabled && !!ohsunBackdropImg;
   const busy = showOhsunBackdrop && ohsunManager.isBusy();
   const hudBottom = showOhsunBackdrop && !busy ? getHudRectCached().bottom : 0;
-  const key=[W,H,bx,by,cs,showOhsunBackdrop,busy,practiceMode,hudBottom].join("|");
+  const key=[W,H,DPR,bx,by,cs,showOhsunBackdrop,busy,practiceMode,hudBottom].join("|");
   if(key!==cachedBackgroundKey){
-    backgroundLayer.width=Math.max(1,Math.ceil(W));
-    backgroundLayer.height=Math.max(1,Math.ceil(H));
+    backgroundLayer.width=Math.max(1,Math.ceil(W*DPR));
+    backgroundLayer.height=Math.max(1,Math.ceil(H*DPR));
     const g=backgroundLayer.getContext("2d");
+    g.setTransform(DPR,0,0,DPR,0,0);
+    g.imageSmoothingEnabled=true;
+    g.imageSmoothingQuality="high";
     g.clearRect(0,0,W,H);
     if(showOhsunBackdrop){
       const boardRect={ x:bx, y:by, width:cs*COLS, height:cs*ROWS };
