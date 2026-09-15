@@ -1,6 +1,5 @@
 import UIKit
 import Capacitor
-import AVFoundation
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -8,12 +7,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("Failed to configure audio session: \(error)")
-        }
+        // Deliberately no AVAudioSession override here. Configuring the session garbles the
+        // audio that Control Center screen recording captures, for BGM and effects alike.
+        // BGM is a plain HTML audio element that never touches Web Audio, so the session was
+        // the only cause the two could share. Reproduced on device: with .playback the
+        // recording was garbled, and with .mixWithOthers it captured no audio at all.
+        // WKWebView manages the session itself; let it.
+        // Accepted cost: the ring/silent switch mutes the game.
+        // Backgrounding is handled in JS by the App plugin appStateChange listener.
         return true
     }
 

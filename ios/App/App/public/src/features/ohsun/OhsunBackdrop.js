@@ -130,10 +130,11 @@ export function drawOhsunSafeAccents(ctx, options) {
   });
   for (const slot of slots) {
     ctx.save();
-    ctx.globalAlpha = .86;
-    ctx.shadowColor = "rgba(64,54,25,.2)";
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetY = 3;
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.filter = "none";
     // 枠内へcontain配置し、公式画像の縦横比と全体像を維持する。
     ctx.drawImage(image, slot.x, slot.y, slot.width, slot.height);
     ctx.restore();
@@ -143,80 +144,28 @@ export function drawOhsunSafeAccents(ctx, options) {
 
 export function calculateOhsunHeroLayout({ width, height, board, safeTop = 8, imageAspect = 1 }) {
   const edge = width <= 480 ? 10 : 18;
-  const boardBottom = board.y + board.height;
-  const rightRegion = {
-    x:board.x + board.width + 18,
-    y:Math.max(safeTop, board.y),
-    width:width - edge - (board.x + board.width + 18),
-    height:Math.min(board.height, height - edge - Math.max(safeTop, board.y))
-  };
-
-  if (width > 700 && rightRegion.width >= 210 && rightRegion.height >= 250) {
-    const charWidth = Math.min(160, rightRegion.width - 30);
-    const charHeight = charWidth / imageAspect;
-    return {
-      orientation:"column",
-      region:rightRegion,
-      character:{
-        x:rightRegion.x + (rightRegion.width - charWidth) / 2,
-        y:rightRegion.y + 12,
-        width:charWidth,
-        height:charHeight
-      },
-      bubble:{
-        x:rightRegion.x + 8,
-        y:rightRegion.y + charHeight + 26,
-        width:rightRegion.width - 16,
-        height:Math.max(54, rightRegion.height - charHeight - 34)
-      }
-    };
+  const bottomY = board.y + board.height + 30;
+  const candidates = [
+    { orientation:"row", x:edge, y:safeTop, width:width-edge*2, height:board.y-safeTop-12 },
+    { orientation:"row", x:edge, y:bottomY, width:width-edge*2, height:height-edge-bottomY }
+  ];
+  if(width > 700){
+    const rightX = board.x + board.width + 18;
+    const rightY = Math.max(safeTop, board.y);
+    candidates.push({
+      orientation:"column", x:rightX, y:rightY, width:width-edge-rightX,
+      height:Math.min(board.height, height-edge-rightY)
+    });
   }
-
-  const topRegion = {
-    x:edge,
-    y:safeTop,
-    width:width - edge * 2,
-    height:board.y - safeTop - 12
-  };
-  const bottomY = boardBottom + 30;
-  const bottomRegion = {
-    x:edge,
-    y:bottomY,
-    width:width - edge * 2,
-    height:height - edge - bottomY
-  };
-  const topUsable = topRegion.height >= 82;
-  const bottomUsable = bottomRegion.height >= 82;
-  const region = topUsable
-    ? topRegion
-    : bottomUsable
-      ? bottomRegion
-      : topRegion.height >= bottomRegion.height ? topRegion : bottomRegion;
-  const availableHeight = Math.max(54, region.height - 8);
-  let charHeight = Math.min(width <= 480 ? 108 : 138, availableHeight);
-  let charWidth = charHeight * imageAspect;
-  const minBubbleWidth = Math.min(190, region.width * .56);
-  if (region.width - charWidth - 14 < minBubbleWidth) {
-    charWidth = Math.max(46, region.width - minBubbleWidth - 14);
-    charHeight = charWidth / imageAspect;
-  }
-  const character = {
-    x:region.x + 4,
-    y:region.y + (region.height - charHeight) / 2,
-    width:charWidth,
-    height:charHeight
-  };
-  return {
-    orientation:"row",
-    region,
-    character,
-    bubble:{
-      x:character.x + character.width + 8,
-      y:region.y + 6,
-      width:Math.max(90, region.x + region.width - (character.x + character.width + 14)),
-      height:Math.max(42, region.height - 12)
-    }
-  };
+  // With no dialogue, the full safe region is available to the official image.
+  const layouts = candidates.filter(region=>region.width>16 && region.height>16).map(region=>{
+    const character = fitImageInRect({
+      x:region.x+8, y:region.y+8, width:region.width-16, height:region.height-16
+    }, imageAspect, Infinity);
+    return { orientation:region.orientation, region, character };
+  });
+  layouts.sort((a,b)=>b.character.width*b.character.height-a.character.width*a.character.height);
+  return layouts[0] ?? null;
 }
 
 export function createOhsunMenuBackdrop(host, image, config) {

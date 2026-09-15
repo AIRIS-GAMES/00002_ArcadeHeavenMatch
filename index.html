@@ -59,7 +59,7 @@
     padding:10px 8px 6px; z-index:5; pointer-events:none;
     transition:opacity .18s ease;
   }
-  #hud.ohsun-cinematic { opacity:0; pointer-events:none; }
+  #hud.ohsun-cinematic { opacity:0; pointer-events:none; transition:none; }
   .stat {
     background:rgba(255,255,255,.75); border:3px solid #fff;
     border-radius:18px; padding:4px 8px; text-align:center; min-width:62px;
@@ -162,7 +162,7 @@
   @media (max-width:480px) {
     #hud {
       display:grid;
-      grid-template-columns:56px 86px 50px 74px 38px;
+      grid-template-columns:minmax(44px,.8fr) minmax(76px,1.3fr) minmax(42px,.7fr) minmax(68px,1fr) 38px;
       grid-template-areas:
         "stage score time life mute"
         ". . . shop pause"
@@ -173,15 +173,17 @@
     }
     .stat {
       width:auto; min-width:0;
+      height:64px;
       padding:3px 4px; border-width:2px; border-radius:14px;
     }
     .stat:nth-child(1) { grid-area:stage; }
     .stat:nth-child(2) { grid-area:score; min-width:0; }
     .stat:nth-child(3) { grid-area:time; }
     .stat:nth-child(4) { grid-area:life; min-width:0; }
-    .stat .label { font-size:9.5px; line-height:1.15; }
-    .stat .val { font-size:15.5px; line-height:1.18; white-space:nowrap; }
-    .stat:nth-child(4) .val { font-size:13px; letter-spacing:-.03em; }
+    .stat .label { font-size:9.5px; line-height:1.15; min-height:22px; }
+    .stat .val { font-size:15.5px; line-height:28px; white-space:nowrap; }
+    #hud-score { white-space:pre-line; font-size:12px; line-height:14px; }
+    .stat:nth-child(4) .val { font-size:12px; letter-spacing:0; }
     .mobile-label-break { display:block; }
     .hud-btn { width:38px; height:38px; min-width:38px; font-size:16px; line-height:38px; }
     #btn-mute { grid-area:mute; }
@@ -196,12 +198,13 @@
   }
   @media (max-width:340px) {
     #hud {
-      grid-template-columns:52px 80px 46px 68px 34px;
+      grid-template-columns:minmax(40px,.8fr) minmax(74px,1.3fr) minmax(38px,.7fr) minmax(62px,1fr) 34px;
       gap:3px;
     }
     .stat { padding-left:2px; padding-right:2px; }
     .stat .label { font-size:8px; }
     .stat .val { font-size:14px; }
+    #hud-score { font-size:11px; }
     .stat:nth-child(4) .val { font-size:12px; }
     .hud-btn { width:34px; height:34px; min-width:34px; font-size:15px; line-height:34px; }
     .ohsun-gauge-ready { font-size:10px; }
@@ -250,8 +253,8 @@
   }
   .ohsun-menu-character {
     position:absolute; display:block; width:min(21vw,210px); height:auto;
-    object-fit:contain; opacity:.92;
-    filter:drop-shadow(0 6px 9px rgba(70,60,45,.2));
+    object-fit:contain; opacity:1;
+    z-index:1;
     user-select:none; -webkit-user-drag:none;
   }
   .ohsun-menu-character-top {
@@ -259,17 +262,17 @@
     width:min(18vw,180px);
   }
   .ohsun-menu-character-left {
-    top:43%; left:10px; transform:translateY(-50%) rotate(-6deg);
+    top:43%; left:10px; transform:translateY(-50%);
   }
   .ohsun-menu-character-right {
-    top:56%; right:10px; transform:translateY(-50%) rotate(6deg);
+    top:56%; right:10px; transform:translateY(-50%);
   }
   .ohsun-menu-character-bottom {
     bottom:28px; left:50%; transform:translateX(-50%);
     width:min(25vw,250px);
   }
   @media (max-width:480px) {
-    .ohsun-menu-character { width:84px; opacity:.78; }
+    .ohsun-menu-character { width:84px; opacity:1; }
     .ohsun-menu-character-top { top:6px; width:76px; }
     .ohsun-menu-character-left { left:6px; top:44%; }
     .ohsun-menu-character-right { right:6px; top:56%; }
@@ -431,6 +434,7 @@
   /* 詳細説明は初回チュートリアル／「遊び方」から開くため、メニューでは開始導線を優先する。 */
   #title .howto-card { display:none; }
   #howto-guide {
+    position:fixed; height:100dvh; min-height:0;
     z-index:52;
     padding:calc(env(safe-area-inset-top,0px) + 14px) 12px calc(env(safe-area-inset-bottom,0px) + 14px);
     background:rgba(69,48,78,.58);
@@ -445,7 +449,7 @@
     overflow-y:auto;
     background:rgba(255,250,253,.97);
   }
-  #howto-guide-content { width:100%; }
+  #howto-guide-content { width:100%; min-width:0; }
   #howto-guide .howto-card {
     display:block;
     box-sizing:border-box;
@@ -474,6 +478,9 @@
     font-size:16px;
     line-height:1.45;
     font-weight:700;
+    white-space:normal;
+    word-break:normal;
+    overflow-wrap:anywhere;
   }
   #howto-guide .howto-special-section {
     padding-top:10px;
@@ -486,7 +493,7 @@
     font-weight:700;
     text-align:left;
   }
-  #howto-guide .howto-special-list { gap:8px 10px; }
+  #howto-guide .howto-special-list { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px 10px; }
   #howto-guide .howto-special-row { font-size:12px; }
   #howto-guide .special-icon { width:34px; height:34px; flex-basis:34px; }
   @media (max-width:380px), (max-height:680px) {
@@ -1073,13 +1080,29 @@
   }
   h2 { font-size:24px; color:#9b6fc9; text-shadow:0 2px 0 #fff; }
   .sub { font-size:13px; color:#c08cc0; font-weight:500; }
-  #clear .panel { gap:12px; }
+  #clear {
+    position:fixed; height:100dvh; min-height:0;
+    padding:calc(12px + env(safe-area-inset-top,0px)) 16px calc(12px + env(safe-area-inset-bottom,0px));
+    overflow:hidden;
+  }
+  #clear .panel {
+    width:100%; max-width:360px; max-height:100%;
+    padding:18px 20px; gap:10px; overflow:visible;
+  }
+  #clear h2 { font-size:22px; line-height:1.3; }
+  #clear .big-score { width:100%; font-size:24px; line-height:1.3; overflow-wrap:anywhere; }
+  #clear .coin-row { margin:0; font-size:26px; line-height:1.3; }
+  #clear .menu-actions { gap:6px; }
+  #clear .menu-actions button { width:100%; min-height:44px; padding:10px 12px; font-size:20px; line-height:1.2; }
+  #clear #btn-clear-title { min-height:40px; padding:8px; font-size:14px; background:transparent; color:#806393; box-shadow:none; text-shadow:none; }
   #clear-chara {
     position:static;
     inset:auto;
     z-index:auto;
     display:block;
     flex:0 0 auto;
+    width:120px; height:120px;
+    animation:none; filter:none;
   }
   .big-score { font-size:30px; line-height:1.25; white-space:pre-line; color:#ff8fc0; font-weight:500; }
   .result-summary {
@@ -1097,11 +1120,16 @@
     background:#e8fff0; color:#37825b; font-size:12px; font-weight:700;
   }
   @media (max-height:680px) {
-    #clear .panel { gap:7px; padding:14px 18px; }
-    #clear-chara { width:96px !important; height:96px !important; }
+    #clear .panel { gap:8px; padding:14px 18px; }
+    #clear-chara { width:96px; height:96px; }
     .big-score { font-size:23px; }
     .result-stat { padding:5px 3px; }
     .result-stat b { font-size:15px; }
+  }
+  @media (max-height:450px) {
+    #clear .panel { gap:6px; padding:10px 16px; }
+    #clear #clear-chara { display:none !important; }
+    #clear .big-score { font-size:22px; }
   }
   .best { font-size:13px; color:#b09ace; }
   .ranking-panel { max-width:560px; gap:14px; }
@@ -1486,6 +1514,14 @@
     #title .menu-title::after,
     #howto-guide .howto-label::after { width:58px; height:2px; }
   }
+  @media (max-width:480px) {
+    #howto-guide .howto-guide-panel { width:100%; min-width:0; }
+    #howto-guide .howto-special-list { grid-template-columns:minmax(0,1fr); gap:8px; }
+    #howto-guide .howto-special-row { font-size:13px; line-height:1.35; gap:10px; }
+    #howto-guide .special-icon { width:30px; height:30px; flex-basis:30px; }
+    #howto-guide .howto-text { font-size:14px; line-height:1.45; }
+    #howto-guide .howto-guide-close { font-size:18px; padding:10px 12px; }
+  }
 </style>
 </head>
 <body>
@@ -1504,7 +1540,7 @@
     <button id="btn-pause" class="hud-btn" type="button" aria-label="一時停止">Ⅱ</button>
   </div>
 
-  <audio id="bgm" src="Asset/BGM.mp3" loop preload="auto"></audio>
+  <audio id="bgm" src="Asset/standard/audio/bgm.mp3" loop preload="auto"></audio>
   <canvas id="game"></canvas>
 
   <div id="title" class="overlay">
@@ -1622,15 +1658,12 @@
   <div id="clear" class="overlay hidden">
     <div class="panel">
       <h2>ステージクリア！</h2>
-      <canvas id="clear-chara" class="chara-pop" width="320" height="320" style="width:180px;height:180px;display:none;"></canvas>
+      <canvas id="clear-chara" width="320" height="320" style="display:none;"></canvas>
       <div class="big-score" id="clear-score"></div>
-      <div class="result-mission" id="clear-mission"></div>
-      <div class="result-summary" id="clear-stats"></div>
       <div class="coin-row"><img src="Asset/cosmo-coin.png" alt="コイン"><span id="clear-coin"></span></div>
-      <div class="best" id="clear-coin-total"></div>
       <div class="menu-actions">
         <button id="btn-next">つぎへすすむ</button>
-        <button id="btn-clear-title" class="secondary-btn">保存して<br>メニューに戻る</button>
+        <button id="btn-clear-title" class="secondary-btn">メニューに戻る</button>
       </div>
     </div>
   </div>
@@ -1757,6 +1790,7 @@ const GRAV = GAME_CONFIG.animation.gravity;
 const ACTIVE_FRAME_RATE = GAME_CONFIG.performance.activeFrameRate;
 const FRAME_INTERVAL_MS = 1000 / ACTIVE_FRAME_RATE;
 const MAX_RENDER_DPR = GAME_CONFIG.performance.maxDpr;
+const MAX_CANVAS_PIXELS = GAME_CONFIG.performance.maxCanvasPixels;
 const PARTICLE_DENSITY = GAME_CONFIG.performance.particleDensity;
 const MAX_PARTICLES = GAME_CONFIG.performance.maxParticles;
 const REDUCED_EFFECTS = GAME_CONFIG.performance.reducedEffects;
@@ -1839,6 +1873,7 @@ function getOhsunHeroLayoutCached(){
 function resize(){
   DPR = Math.min(window.devicePixelRatio||1, MAX_RENDER_DPR);
   W = window.innerWidth; H = window.innerHeight;
+  DPR = Math.min(DPR, Math.sqrt(MAX_CANVAS_PIXELS / Math.max(1,W*H)));
   cv.width = W*DPR; cv.height = H*DPR;
   cv.style.width = W+"px"; cv.style.height = H+"px";
   ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -1852,27 +1887,94 @@ function resize(){
   by = topPad + (H-topPad-botPad - cs*ROWS)/2;
   invalidateRenderCaches();
 }
-window.addEventListener("resize", resize);
+window.addEventListener("resize", ()=>{
+  resize();
+  if(ohsunManager.isBusy()){
+    setOhsunCinematic(false);
+    setOhsunCinematic(needsOhsunHudSpace());
+  }
+});
 resize();
 
 //================ Sound ================
-let AC = null;
-let masterGain = null;
-let masterLimiter = null;
-let sfxGain = null;
+// Everything plays through HTMLAudioElement, as in the reference implementation. No Web Audio.
+// Three deviations from a literal copy of that reference, all aimed at the iOS stutter, which
+// comes from doing pause -> seek -> play on the frame a sound has to start. The reference has
+// four media elements and fires them rarely; this game has 31 effects firing through chains.
+//   1. Each hot effect has a small pool and is rewound in its "ended" handler, so a trigger
+//      only has to call play(). The seek still costs, but not on the frame that needs the sound.
+//   2. Only chain-rate effects preload; the rest load on first use, so iOS does not hold 31
+//      prepared media pipelines.
+//   3. At most three effects overlap and one key retriggers at most every 100 ms.
 let audioUnlocked = false;
+let audioSuspended = false;
+let nativeAudioInactive = false;
+let bgmWanted = false;
 const bgm = document.getElementById("bgm");
 let muted = localStorage.getItem("ohanapon-muted")==="1";
-const BGM_DEFAULT_VOLUME = 0.18;
-const SFX_MASTER_VOLUME = 0.42;
+// The attenuated bgm.mp3 peaks at -6.6 dBFS, so this lands at -16.5 dBFS: below the 0.20 the
+// brief asks for when measured against the unattenuated original, and high enough to survive
+// screen recording. See docs/audio-migration.md.
+const BGM_DEFAULT_VOLUME = 0.32;
+const SFX_VOLUMES = { swap:0.4, deny:0.3, clear:0.5, bell:0.5, bomb:0.5,
+  time:0.45, color:0.45, stage:0.5, lose:0.4, horror:0.3, coin:0.4, tick:0.35 };
+const SFX_COUNTS = { swap:1, deny:1, clear:6, bell:1, bomb:1,
+  time:1, color:1, stage:1, lose:1, horror:1, coin:6, tick:10 };
+const SFX_HOT = new Set(["swap", "deny", "clear"]);
+const SFX_POOL = 2;
+const SFX_MAX_VOICES = 3;
+const SFX_RETRIGGER_MS = 100;
+const sfx = new Map();
+const sfxSources = new Map();
+const sfxVolumes = new Map();
+const sfxLastStarted = new Map();
+const activeSfx = new Set();
+
+function sfxFamily(key){
+  const dash = key.lastIndexOf("-");
+  return dash < 0 ? key : key.slice(0, dash);
+}
+for(const [name, count] of Object.entries(SFX_COUNTS)){
+  for(let i=0;i<count;i++){
+    const key = count===1 ? name : name+"-"+i;
+    const source = "Asset/standard/audio/"+key+".wav";
+    const hot = SFX_HOT.has(name);
+    const pool = [];
+    for(let voice=0; voice<(hot ? SFX_POOL : 1); voice++){
+      const element = new Audio(source);
+      element.preload = hot ? "auto" : "none";
+      element.volume = SFX_VOLUMES[name];
+      element.muted = muted;
+      element.addEventListener("ended", ()=>{
+        activeSfx.delete(element);
+        rewind(element);
+      });
+      element.addEventListener("error", ()=>activeSfx.delete(element));
+      pool.push(element);
+    }
+    sfx.set(key, pool);
+    sfxSources.set(key, source);
+    sfxVolumes.set(key, SFX_VOLUMES[name]);
+  }
+}
+function rewind(element){
+  try{ if(element.currentTime !== 0) element.currentTime = 0; }catch(e){}
+}
 function setBgmElementVolume(){
-  if(!bgm) return;
-  bgm.volume = BGM_DEFAULT_VOLUME;
+  if(bgm) bgm.volume = BGM_DEFAULT_VOLUME;
+}
+function stopSfx(){
+  for(const element of activeSfx){
+    element.pause();
+    rewind(element);
+  }
+  activeSfx.clear();
+  sfxLastStarted.clear();
 }
 function applyMuted(){
   if(bgm) bgm.muted = muted;
-  if(masterGain) masterGain.gain.value = muted ? 0 : 0.82;
-  if(sfxGain) sfxGain.gain.value = muted ? 0 : SFX_MASTER_VOLUME;
+  for(const pool of sfx.values()) for(const element of pool) element.muted = muted;
+  if(muted) stopSfx();
   const b=document.getElementById("btn-mute");
   if(b) b.textContent = muted ? "🔇" : "🔊";
   const settingsButton=document.getElementById("btn-settings-mute");
@@ -1890,113 +1992,140 @@ function toggleMute(){
   else if(state!=="title" && state!=="over" && state!=="paused") playBgm();
 }
 function audio(){
-  if(!AC){
-    try{
-      AC = new (window.AudioContext||window.webkitAudioContext)({ latencyHint:"interactive" });
-      masterGain = AC.createGain();
-      masterLimiter = AC.createDynamicsCompressor();
-      sfxGain = AC.createGain();
-      masterLimiter.threshold.value = -18;
-      masterLimiter.knee.value = 18;
-      masterLimiter.ratio.value = 4;
-      masterLimiter.attack.value = 0.006;
-      masterLimiter.release.value = 0.18;
-      masterGain.gain.value = muted ? 0 : 0.82;
-      sfxGain.gain.value = muted ? 0 : SFX_MASTER_VOLUME;
-      sfxGain.connect(masterGain);
-      masterGain.connect(masterLimiter);
-      masterLimiter.connect(AC.destination);
-    }catch(e){}
+  unlockAudio();
+}
+// iOS unlocks media elements one at a time, inside a gesture. Effects are triggered from the
+// game loop, never from a tap, so the pooled ones are started muted once on the first gesture.
+function primeSfxElement(element){
+  const wasMuted = element.muted;
+  const settle = ()=>{
+    element.pause();
+    rewind(element);
+    element.muted = wasMuted;
+  };
+  try{
+    element.muted = true;
+    const promise = element.play();
+    if(promise && typeof promise.then === "function") promise.then(settle, settle);
+    else settle();
+  }catch(e){
+    element.muted = wasMuted;
   }
-  if(AC&&AC.state==="suspended") AC.resume().catch(()=>{});
-  return AC;
 }
 function unlockAudio(){
-  const ctx = audio();
-  if(!ctx || audioUnlocked) return;
-  const playSilent = ()=>{
-    try{
-      const src = ctx.createBufferSource();
-      src.buffer = ctx.createBuffer(1, 1, Math.max(1, ctx.sampleRate || 44100));
-      src.connect(sfxGain || masterGain || ctx.destination);
-      src.start(0);
-      audioUnlocked = true;
-    }catch(e){}
-  };
-  if(ctx.state==="suspended") ctx.resume().then(playSilent).catch(()=>{});
-  else playSilent();
+  if(!audioUnlocked){
+    audioUnlocked = true;
+    for(const [key, pool] of sfx){
+      if(!SFX_HOT.has(sfxFamily(key))) continue;
+      for(const element of pool) primeSfxElement(element);
+    }
+  }
+  resumeBgm();
+}
+function tryPlay(element){
+  try{
+    const promise = element.play();
+    if(promise && typeof promise.catch==="function") promise.catch(()=>{});
+  }catch(e){}
+}
+function resumeBgm(){
+  if(!bgm || !bgmWanted || muted || !audioUnlocked || audioSuspended ||
+    nativeAudioInactive || document.hidden || !bgm.paused) return;
+  setBgmElementVolume();
+  tryPlay(bgm);
 }
 function playBgm(){
-  if(!bgm || muted) return;
-  audio();
-  setBgmElementVolume();
-  bgm.play().catch(()=>{});
+  bgmWanted = true;
+  resumeBgm();
 }
 function pauseBgm(){
+  bgmWanted = false;
   if(bgm) bgm.pause();
+  stopSfx();
 }
 function stopBgm(){
-  if(!bgm) return;
-  bgm.pause();
-  if(bgm.src) bgm.currentTime = 0;
+  pauseBgm();
+  if(bgm && bgm.src) bgm.currentTime = 0;
 }
-function tone(freq, dur, type, vol, when, retry){
-  if(muted) return;
-  audio();
-  if(!AC || !sfxGain) return;
-  if(AC.state==="suspended"){
-    if(!retry) AC.resume().then(()=>tone(freq, dur, type, vol, when, true)).catch(()=>{});
-    return;
+function playSfx(key){
+  if(muted || !audioUnlocked || audioSuspended || nativeAudioInactive || document.hidden) return;
+  const pool = sfx.get(key);
+  if(!pool) return;
+  const now = performance.now();
+  const last = sfxLastStarted.get(key);
+  if(last!==undefined && now-last<SFX_RETRIGGER_MS) return;
+  for(const active of activeSfx) if(active.paused || active.ended) activeSfx.delete(active);
+  if(activeSfx.size>=SFX_MAX_VOICES) return;
+  // A voice left rewound by its "ended" handler needs nothing but play().
+  const element = pool.find(voice=>voice.paused && voice.currentTime===0) ?? pool[0];
+  if(!element.paused || element.currentTime!==0){
+    element.pause();
+    rewind(element);
   }
-  const t = AC.currentTime + (when||0);
-  const o = AC.createOscillator(), g = AC.createGain();
-  o.type = type==="square" ? "triangle" : (type||"sine");
-  o.frequency.value = freq;
-  g.gain.setValueAtTime(0.001, t);
-  g.gain.exponentialRampToValueAtTime(Math.max(0.001, (vol||0.15)*0.55), t+0.018);
-  g.gain.exponentialRampToValueAtTime(0.001, t+dur);
-  o.connect(g); g.connect(sfxGain);
-  o.start(t); o.stop(t+dur);
+  sfxLastStarted.set(key,now);
+  activeSfx.add(element);
+  try{
+    const result=element.play();
+    if(result && typeof result.catch==="function") result.catch(()=>{
+      if(sfxLastStarted.get(key)!==now) return;
+      activeSfx.delete(element);
+      sfxLastStarted.delete(key);
+    });
+  }catch(e){
+    activeSfx.delete(element);
+    sfxLastStarted.delete(key);
+  }
 }
-const PENTA = [523, 587, 659, 784, 880, 1047, 1175, 1319];
-function sndSwap(){ tone(440,.08,"triangle",.18); tone(660,.06,"sine",.08,.025); }
-function sndDeny(){ tone(180,.12,"triangle",.12); }
-function sndClear(combo){
-  const i = Math.min(combo-1, 5);
-  tone(PENTA[i],.18,"sine",.22); tone(PENTA[i+2],.22,"sine",.14,.05);
+function sndSwap(){ playSfx("swap"); }
+function sndDeny(){ playSfx("deny"); }
+function sndClear(combo){ playSfx("clear-"+Math.max(0,Math.min(combo-1,5))); }
+function sndBell(){ playSfx("bell"); }
+function sndBomb(){ playSfx("bomb"); }
+function sndTime(){ playSfx("time"); }
+function sndColorClear(){ playSfx("color"); }
+function sndClearStage(){ playSfx("stage"); }
+function sndLose(){ playSfx("lose"); }
+function sndHorror(){ playSfx("horror"); }
+function suspendAudio(){
+  audioSuspended = true;
+  if(bgm) bgm.pause();
+  stopSfx();
 }
-function sndBell(){ tone(1568,.34,"triangle",.24); tone(2093,.38,"sine",.16,.06); }
-function sndBomb(){ tone(196,.12,"triangle",.28); tone(98,.22,"sine",.2,.03); tone(784,.14,"triangle",.12,.08); }
-function sndTime(){ tone(880,.12,"sine",.18); tone(1175,.14,"triangle",.14,.06); tone(1568,.16,"sine",.12,.13); }
-function sndColorClear(){ [523,659,784,1047,1319].forEach((f,i)=>tone(f,.12,"sine",.13,i*.045)); }
-function sndClearStage(){ [0,2,4,5].forEach((n,i)=>tone(PENTA[n],.3,"sine",.19,i*.12)); }
-function sndLose(){ tone(392,.25,"sine",.16); tone(311,.35,"sine",.16,.2); }
-function sndHorror(){
-  // スマホ画面録画では低周波の長い音が「ぶおおん」と潰れやすいので、短い通知音にする。
-  tone(330,.12,"triangle",.12);
-  tone(247,.16,"sine",.10,.06);
+function restoreAudio(){
+  audioSuspended = false;
+  resumeBgm();
 }
 ["pointerdown","touchstart","touchend","mousedown","keydown"].forEach(ev=>{
   window.addEventListener(ev, unlockAudio, { capture:true, passive:true });
 });
 document.addEventListener("visibilitychange", ()=>{
   if(document.hidden){
-    pauseBgm();
+    suspendAudio();
     stopGameLoop();
     return;
   }
   resetFrameClock();
   ensureGameLoop();
-  if(!muted && state!=="title" && state!=="over" && state!=="paused") playBgm();
+  restoreAudio();
 });
+window.addEventListener("pagehide", suspendAudio);
 ["pageshow","focus"].forEach(ev=>{
   window.addEventListener(ev, ()=>{
     if(document.hidden) return;
     resetFrameClock();
     ensureGameLoop();
-    if(!muted && state!=="title" && state!=="over" && state!=="paused") playBgm();
+    restoreAudio();
   });
 });
+const capacitor = window.Capacitor;
+if(capacitor?.isNativePlatform()){
+  const app = capacitor.registerPlugin("App");
+  app.addListener("appStateChange", ({isActive})=>{
+    nativeAudioInactive = !isActive;
+    if(isActive) restoreAudio();
+    else suspendAudio();
+  }).catch(()=>{});
+}
 
 //================ Game State ================
 let board = [];     // board[r][c] = {t, offY, vy, scale, pop} | null
@@ -2395,13 +2524,16 @@ function setOhsunCinematic(active){
 function needsOhsunHudSpace(){
   if(!ohsunCharacterImg || !cs) return false;
   const layout=getOhsunHeroLayoutCached();
-  return layout.orientation==="row" && layout.region.height<72;
+  return !layout || (layout.orientation==="row" && Math.min(layout.character.width,layout.character.height)<140);
 }
 
 function loadOhsunCharacter(asset){
   return new Promise(resolve=>{
     const image = new Image();
-    image.onload = ()=>resolve({ asset, image });
+    image.onload = async()=>{
+      try{ if(image.decode) await image.decode(); }catch{}
+      resolve({ asset, image });
+    };
     image.onerror = ()=>resolve(null);
     image.src = asset;
   });
@@ -3007,7 +3139,7 @@ function finishPracticeStar(){
 //================ Progress ================
 function updateHUD(){
   document.getElementById("hud-level").textContent = level;
-  document.getElementById("hud-score").textContent = score+" / "+target;
+  document.getElementById("hud-score").textContent = score+"\n/ "+target;
   const secs = Math.max(0,Math.ceil(timeLeft));
   const timeEl = document.getElementById("hud-time");
   timeEl.textContent = secs;
@@ -3176,11 +3308,6 @@ function stageClear(){
   gaEvent("addDesignEvent", "stage:clear:score", score);
   sndClearStage();
   document.getElementById("clear-score").textContent = "ステージ"+level+"\nスコア "+score+"てん";
-  renderStageResult("clear",true);
-  ohsunStageResult.render(
-    document.querySelector("#clear .panel"),
-    document.getElementById("clear-coin").parentElement
-  );
   saveProgress(level);
   saveBestScore();
   syncLeaderboardScore("stage_clear");
@@ -3191,7 +3318,6 @@ function stageClear(){
   spawnCoinBurst(earned);
   sndCoinRush(earned);
   document.getElementById("clear-coin").textContent = "+0";
-  document.getElementById("clear-coin-total").textContent = "ぜんぶで "+coins+" コイン";
   // Show a random character on the clear screen.
   const cc = document.getElementById("clear-chara");
   const g = cc.getContext("2d");
@@ -3950,10 +4076,7 @@ function spawnCoinBurst(amount){
 // 獲得量に応じてコイン音を短い間隔で連打する
 function sndCoinRush(amount){
   const n = Math.min(10, 5 + Math.floor(amount/45));
-  for(let i=0;i<n;i++){
-    tone(1040 + i*60, .075, "triangle", .12, i*.05);
-    tone(1560 + i*82, .045, "sine", .07, i*.05 + .014);
-  }
+  playSfx("coin-"+(n-5));
 }
 function spawnParticles(x,y,type){
   const col = type===BELL ? "#ffd34d" : type===BOMB ? "#ff6a3d" : type===TIME ? "#43c8ff" : type===COLOR_CLEAR ? "#ffffff" : PAL[type].petal;
@@ -3969,10 +4092,10 @@ function spawnParticles(x,y,type){
 }
 
 //================ Drawing Helpers ================
-function rounded(x,y,w,h,r){
-  ctx.beginPath();
-  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
-  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+function rounded(x,y,w,h,r,g=ctx){
+  g.beginPath();
+  g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath();
 }
 
 // Miss penalty.
@@ -4020,16 +4143,26 @@ const TILE_IMAGE_SCALE=[
   {w:3.0,h:2.78},  // chara4: red
   {w:3.15,h:2.98}  // chara5: purple
 ];
+const tileImageLayers=new Map();
 function drawTileImageObject(g,img,x,y,r,t){
   const scale=TILE_IMAGE_SCALE[t] || TILE_IMAGE_SCALE[0];
   const maxW=r*scale.w, maxH=r*scale.h;
   const sc=Math.min(maxW/img.naturalWidth,maxH/img.naturalHeight);
   const w=img.naturalWidth*sc, h=img.naturalHeight*sc;
-  g.save();
-  // Normal pieces are drawn dozens of times per frame; per-piece blurred
-  // shadows are disproportionately expensive on mobile GPUs.
-  g.drawImage(img,x-w/2,y-h/2,w,h);
-  g.restore();
+  const key=[img.src,w,h,DPR].join("|");
+  let cached=tileImageLayers.get(t);
+  if(!cached || cached.key!==key){
+    const layer=document.createElement("canvas");
+    layer.width=Math.max(1,Math.ceil(w*DPR));
+    layer.height=Math.max(1,Math.ceil(h*DPR));
+    const paint=layer.getContext("2d");
+    paint.imageSmoothingQuality="high";
+    paint.drawImage(img,0,0,layer.width,layer.height);
+    cached={key,layer};
+    tileImageLayers.set(t,cached);
+  }
+  // Only normal puzzle pieces use this cache; official collaboration art is drawn directly.
+  g.drawImage(cached.layer,x-w/2,y-h/2,w,h);
 }
 function drawObject(g,t,x,y,r){
   if(imgReady(tileImgs[t])) { drawTileImageObject(g,tileImgs[t],x,y,r,t); return; }
@@ -4044,7 +4177,7 @@ function drawObject(g,t,x,y,r){
   }
 }
 
-function drawBell(x,y,r,pulse){
+function drawBell(x,y,r,pulse,ctx){
   if(!imgReady(starSpecialImg)) return;
   const glow=0.28+0.12*Math.sin(pulse*6);
   ctx.save();
@@ -4056,7 +4189,7 @@ function drawBell(x,y,r,pulse){
   ctx.restore();
 }
 
-function drawBomb(x,y,r,pulse){
+function drawBomb(x,y,r,pulse,ctx){
   const bob = Math.sin(pulse*7);
   ctx.save();
   ctx.shadowColor="rgba(80,30,20,.35)";
@@ -4102,7 +4235,7 @@ function drawBomb(x,y,r,pulse){
   ctx.restore();
 }
 
-function drawTimeTile(x,y,r,pulse){
+function drawTimeTile(x,y,r,pulse,ctx){
   const wobble = Math.sin(pulse*6);
   ctx.save();
   ctx.shadowColor="rgba(30,110,170,.35)";
@@ -4151,7 +4284,7 @@ function drawTimeTile(x,y,r,pulse){
   ctx.restore();
 }
 
-function drawColorClearTile(x,y,r,pulse){
+function drawColorClearTile(x,y,r,pulse,ctx){
   const spin = pulse*1.8;
   ctx.save();
   ctx.shadowColor="rgba(80,60,160,.35)";
@@ -4200,15 +4333,32 @@ function drawColorClearTile(x,y,r,pulse){
   ctx.restore();
 }
 
+const specialImageLayers=new Map();
+function drawSpecialPiece(type,x,y,r){
+  const paint=type===BELL ? drawBell : type===BOMB ? drawBomb : type===TIME ? drawTimeTile : drawColorClearTile;
+  if(!REDUCED_EFFECTS){ paint(x,y,r,perf,ctx); return; }
+  if(type===BELL && !imgReady(starSpecialImg)) return;
+  const size=Math.ceil(r*3.6), key=[size,r,DPR].join("|");
+  let cached=specialImageLayers.get(type);
+  if(!cached || cached.key!==key){
+    const layer=document.createElement("canvas");
+    layer.width=layer.height=Math.ceil(size*DPR);
+    const g=layer.getContext("2d");
+    g.setTransform(DPR,0,0,DPR,0,0);
+    paint(size/2,size/2,r,0,g);
+    cached={key,layer};
+    specialImageLayers.set(type,cached);
+  }
+  // Cache only puzzle artwork; movement and clear scaling remain animated.
+  ctx.drawImage(cached.layer,x-size/2,y-size/2,size,size);
+}
+
 function drawTile(r,c,tile,x,y,extraScale){
   const sc = tile.scale * (1+tile.pop) * (extraScale||1);
   const cx = x+cs/2, cy = y+cs/2;
   ctx.save();
   ctx.translate(cx,cy); ctx.scale(sc,sc); ctx.translate(-cx,-cy);
-  if(tile.t===BELL) drawBell(cx,cy,cs*0.4, perf);
-  else if(tile.t===BOMB) drawBomb(cx,cy,cs*0.4, perf);
-  else if(tile.t===TIME) drawTimeTile(cx,cy,cs*0.4, perf);
-  else if(tile.t===COLOR_CLEAR) drawColorClearTile(cx,cy,cs*0.4, perf);
+  if(tile.t===BELL || tile.t===BOMB || tile.t===TIME || tile.t===COLOR_CLEAR) drawSpecialPiece(tile.t,cx,cy,cs*0.4);
   else drawObject(ctx, tile.t, cx,cy,cs*0.4);
   ctx.restore();
 }
@@ -4372,7 +4522,7 @@ function drawGameBackground(){
 }
 
 let perf=0, lastTime=performance.now();
-let lastRenderedAt=0;
+let nextFrameAt=0;
 let gameFrameRequest=0;
 let terminalAnimationUntil=0;
 
@@ -4385,7 +4535,7 @@ function shouldRunGameLoop(now=performance.now()){
 
 function resetFrameClock(){
   lastTime=performance.now();
-  lastRenderedAt=0;
+  nextFrameAt=0;
 }
 
 function ensureGameLoop(){
@@ -4402,12 +4552,18 @@ function stopGameLoop(){
 function frame(now){
   gameFrameRequest=0;
   if(!shouldRunGameLoop(now)) return;
-  if(lastRenderedAt && now-lastRenderedAt<FRAME_INTERVAL_MS-1){
+  // Allow minor callback jitter without skipping a 60Hz display refresh.
+  const frameTolerance=Math.min(4,FRAME_INTERVAL_MS/4);
+  if(nextFrameAt && now<nextFrameAt-frameTolerance){
     gameFrameRequest=requestAnimationFrame(frame);
     return;
   }
   const dt = Math.min((now-lastTime)/1000, 0.05);
-  lastTime=now; lastRenderedAt=now; perf=now/1000;
+  // Preserve the deadline across small delays; skip missed frames without a burst.
+  nextFrameAt=!nextFrameAt || now-nextFrameAt>=FRAME_INTERVAL_MS
+    ? now+FRAME_INTERVAL_MS
+    : nextFrameAt+FRAME_INTERVAL_MS;
+  lastTime=now; perf=now/1000;
   update(dt);
   render();
   if(shouldRunGameLoop(now)) gameFrameRequest=requestAnimationFrame(frame);
@@ -4433,7 +4589,7 @@ function update(dt){
     if(now!==before){
       updateHUD();
       // 残り10秒からカウントダウン音（残りが減るほど高く）
-      if(now>0 && now<=10) tone(660+(10-now)*36, .09, "triangle", .16);
+      if(now>0 && now<=10) playSfx("tick-"+(10-now));
       if(now===10) notifyPinch("time");
     }
     if(timeLeft<=0){
@@ -4493,13 +4649,54 @@ function update(dt){
   }
 }
 
+const ohsunLightLayer=document.createElement("canvas");
+let cachedOhsunLightKey="";
+function paintOhsunLight(g,glowX,glowY,rotation){
+  const rayRadius = Math.max(W,H)*0.52;
+  g.save();
+  g.translate(glowX,glowY);
+  g.rotate(rotation);
+  g.fillStyle = "rgba(255,205,55,.18)";
+  const rayCount=REDUCED_EFFECTS ? 8 : 12;
+  for(let i=0;i<rayCount;i++){
+    g.rotate(Math.PI*2/rayCount);
+    g.beginPath();
+    g.moveTo(0,0);
+    g.lineTo(-rayRadius*0.08,-rayRadius);
+    g.lineTo(rayRadius*0.08,-rayRadius);
+    g.closePath();
+    g.fill();
+  }
+  g.restore();
+  const sunGlow = g.createRadialGradient(glowX,glowY,8,glowX,glowY,rayRadius*.56);
+  sunGlow.addColorStop(0,"rgba(255,247,170,.72)");
+  sunGlow.addColorStop(.42,"rgba(255,190,45,.26)");
+  sunGlow.addColorStop(1,"rgba(255,170,0,0)");
+  g.fillStyle = sunGlow;
+  g.fillRect(0,0,W,H);
+
+}
+function drawOhsunLight(glowX,glowY,reduceMotion){
+  if(!reduceMotion){
+    paintOhsunLight(ctx,glowX,glowY,ohsunAnimationTime*0.22);
+    return;
+  }
+  const key=[W,H,glowX,glowY,REDUCED_EFFECTS].join("|");
+  if(key!==cachedOhsunLightKey){
+    // Only the soft background light is cached, never the official artwork.
+    ohsunLightLayer.width=Math.max(1,Math.ceil(W));
+    ohsunLightLayer.height=Math.max(1,Math.ceil(H));
+    paintOhsunLight(ohsunLightLayer.getContext("2d"),glowX,glowY,0);
+    cachedOhsunLightKey=key;
+  }
+  ctx.drawImage(ohsunLightLayer,0,0,W,H);
+}
+
 function drawOhsunOverlay(){
   if(!ohsunCharacterImg || !ohsunManager.isBusy()) return;
   const eventState = ohsunManager.state;
   const timing = OHSUN_EVENT_CONFIG.timing;
   const reduceMotion = REDUCED_EFFECTS || (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
-  const entryProgress = Math.min(1, ohsunManager.elapsed / timing.entrySeconds);
-  const exitProgress = Math.min(1, ohsunManager.elapsed / timing.exitSeconds);
   const cooldownProgress = Math.min(1, ohsunManager.elapsed / timing.cooldownSeconds);
   const overlayAlpha = eventState===OHSUN_EVENT_STATES.COOLDOWN ? 1-cooldownProgress : 1;
 
@@ -4513,30 +4710,7 @@ function drawOhsunOverlay(){
   if(!heroLayout){ ctx.restore(); return; }
   const restingCharX=heroLayout.character.x+heroLayout.character.width/2;
   const restingCharY=heroLayout.character.y+heroLayout.character.height/2;
-  const glowX = restingCharX;
-  const glowY = restingCharY;
-  const rayRadius = Math.max(W,H)*0.52;
-  ctx.save();
-  ctx.translate(glowX,glowY);
-  ctx.rotate(reduceMotion ? 0 : ohsunAnimationTime*0.22);
-  ctx.fillStyle = "rgba(255,205,55,.18)";
-  const rayCount=REDUCED_EFFECTS ? 8 : 12;
-  for(let i=0;i<rayCount;i++){
-    ctx.rotate(Math.PI*2/rayCount);
-    ctx.beginPath();
-    ctx.moveTo(0,0);
-    ctx.lineTo(-rayRadius*0.08,-rayRadius);
-    ctx.lineTo(rayRadius*0.08,-rayRadius);
-    ctx.closePath();
-    ctx.fill();
-  }
-  ctx.restore();
-  const sunGlow = ctx.createRadialGradient(glowX,glowY,8,glowX,glowY,rayRadius*.56);
-  sunGlow.addColorStop(0,"rgba(255,247,170,.72)");
-  sunGlow.addColorStop(.42,"rgba(255,190,45,.26)");
-  sunGlow.addColorStop(1,"rgba(255,170,0,0)");
-  ctx.fillStyle = sunGlow;
-  ctx.fillRect(0,0,W,H);
+  drawOhsunLight(restingCharX,restingCharY,reduceMotion);
 
   if(eventState===OHSUN_EVENT_STATES.ACTIVATING && ohsunTargetCells.size){
     let index=0;
@@ -4557,71 +4731,15 @@ function drawOhsunOverlay(){
 
   const charW=heroLayout.character.width;
   const charH=heroLayout.character.height;
-  let charX=restingCharX;
-  let charY=restingCharY;
-  let rotation=0;
-  let scale=1;
-  if(eventState===OHSUN_EVENT_STATES.ENTERING){
-    const p=reduceMotion ? 1 : 1-Math.pow(1-entryProgress,3);
-    const entryX=heroLayout.orientation==="column" ? W+charW/2 : -charW/2;
-    charX=entryX*(1-p)+restingCharX*p;
-    charY+=Math.sin(entryProgress*Math.PI)*-Math.min(10,heroLayout.region.height*.08);
-    scale=.9+.1*p;
-  } else if(eventState===OHSUN_EVENT_STATES.ACTIVATING){
-    scale=1+(reduceMotion?0:.035*Math.sin(perf*9));
-  } else if(eventState===OHSUN_EVENT_STATES.EXITING){
-    const p=reduceMotion ? exitProgress : exitProgress*exitProgress;
-    charX=restingCharX+(W+charW-restingCharX)*p;
-    rotation=reduceMotion ? 0 : p*Math.PI*.55;
-  }
-
-  ctx.fillStyle="rgba(255,248,202,.16)";
-  rounded(heroLayout.region.x,heroLayout.region.y,heroLayout.region.width,heroLayout.region.height,18);
-  ctx.fill();
-
   ctx.save();
-  ctx.translate(charX,charY);
-  ctx.rotate(rotation);
-  ctx.scale(scale,scale);
-  ctx.shadowColor="rgba(255,190,30,.72)";
-  ctx.shadowBlur=eventState===OHSUN_EVENT_STATES.ACTIVATING ? 28 : 14;
-  // 公式画像には加工せず、縦横比を保った移動・拡縮・回転だけを行う。
-  ctx.drawImage(ohsunCharacterImg,-charW/2,-charH/2,charW,charH);
+  ctx.globalAlpha=1;
+  ctx.shadowBlur=0;
+  ctx.shadowOffsetX=0;
+  ctx.shadowOffsetY=0;
+  ctx.filter="none";
+  // 公式画像は無加工で、縦横比を保った全体表示のみ行う。
+  ctx.drawImage(ohsunCharacterImg,restingCharX-charW/2,restingCharY-charH/2,charW,charH);
   ctx.restore();
-
-  const message=eventState===OHSUN_EVENT_STATES.EXITING
-    ? ohsunAppearance?.exitMessage
-    : eventState===OHSUN_EVENT_STATES.ACTIVATING
-      ? ohsunAppearance?.specialMessage
-      : ohsunAppearance?.entryMessage;
-  if(eventState!==OHSUN_EVENT_STATES.COOLDOWN){
-    const bubbleW=heroLayout.bubble.width;
-    const dialogFontSize=bubbleW<190?12:bubbleW<250?14:16;
-    const dialogLineHeight=dialogFontSize*1.35;
-    ctx.font=canvasFont(800,dialogFontSize);
-    const dialogLines=wrapCanvasText(message,bubbleW-26);
-    const bubbleH=Math.min(heroLayout.bubble.height,Math.max(46,dialogLines.length*dialogLineHeight+18));
-    const bubbleX=heroLayout.bubble.x;
-    const bubbleY=heroLayout.bubble.y+(heroLayout.bubble.height-bubbleH)/2;
-    const bubbleAlpha=eventState===OHSUN_EVENT_STATES.ENTERING
-      ? Math.max(0,Math.min(1,(entryProgress-.22)/.38))
-      : eventState===OHSUN_EVENT_STATES.EXITING ? Math.max(.35,1-exitProgress*.65) : 1;
-    ctx.globalAlpha=overlayAlpha*bubbleAlpha;
-    ctx.fillStyle="rgba(255,255,255,.96)";
-    ctx.shadowColor="rgba(110,70,40,.24)";
-    ctx.shadowBlur=10;
-    rounded(bubbleX,bubbleY,bubbleW,bubbleH,20);
-    ctx.fill();
-    ctx.shadowBlur=0;
-    ctx.fillStyle="#8a5200";
-    ctx.textAlign="center";
-    ctx.textBaseline="middle";
-    const dialogStartY=bubbleY+bubbleH/2-(dialogLines.length-1)*dialogLineHeight/2;
-    dialogLines.forEach((line,index)=>{
-      ctx.fillText(line,bubbleX+bubbleW/2,dialogStartY+index*dialogLineHeight);
-    });
-    ctx.globalAlpha=overlayAlpha;
-  }
   ctx.restore();
 }
 
@@ -4641,6 +4759,35 @@ function drawOhsunCopyright(){
   ctx.restore();
 }
 
+const boardPanelLayer=document.createElement("canvas");
+let cachedBoardPanelKey="";
+function drawBoardPanel(){
+  const pad=40;
+  const width=cs*COLS+pad*2, height=cs*ROWS+pad*2;
+  const key=[cs,COLS,ROWS,DPR].join("|");
+  if(key!==cachedBoardPanelKey){
+    boardPanelLayer.width=Math.ceil(width*DPR);
+    boardPanelLayer.height=Math.ceil(height*DPR);
+    const g=boardPanelLayer.getContext("2d");
+    g.setTransform(DPR,0,0,DPR,0,0);
+    g.save();
+    g.shadowColor="rgba(126,98,168,.2)";
+    g.shadowBlur=22;
+    g.shadowOffsetY=6;
+    g.fillStyle="rgba(255,255,255,.8)";
+    rounded(pad-8,pad-8,cs*COLS+16,cs*ROWS+16,20,g); g.fill();
+    g.restore();
+    g.strokeStyle="rgba(255,255,255,1)"; g.lineWidth=4;
+    rounded(pad-8,pad-8,cs*COLS+16,cs*ROWS+16,20,g); g.stroke();
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      g.fillStyle = (r+c)%2? "rgba(255,255,255,.64)":"rgba(250,244,255,.62)";
+      rounded(pad+c*cs+1.5,pad+r*cs+1.5,cs-3,cs-3,8,g); g.fill();
+    }
+    cachedBoardPanelKey=key;
+  }
+  ctx.drawImage(boardPanelLayer,bx-pad,by-pad,width,height);
+}
+
 function render(){
   ctx.clearRect(0,0,W,H);
   ctx.save();
@@ -4652,20 +4799,7 @@ function render(){
   const drawState = state==="paused" ? (pausedState || "idle") : state;
   if(drawState==="title"){ ctx.restore(); return; }
   drawGameBackground();
-  // Board panel.
-  ctx.save();
-  ctx.shadowColor="rgba(126,98,168,.2)";
-  ctx.shadowBlur=22;
-  ctx.shadowOffsetY=6;
-  ctx.fillStyle="rgba(255,255,255,.8)";
-  rounded(bx-8,by-8,cs*COLS+16,cs*ROWS+16,20); ctx.fill();
-  ctx.restore();
-  ctx.strokeStyle="rgba(255,255,255,1)"; ctx.lineWidth=4;
-  rounded(bx-8,by-8,cs*COLS+16,cs*ROWS+16,20); ctx.stroke();
-  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
-    ctx.fillStyle = (r+c)%2? "rgba(255,255,255,.64)":"rgba(250,244,255,.62)";
-    rounded(bx+c*cs+1.5,by+r*cs+1.5,cs-3,cs-3,8); ctx.fill();
-  }
+  drawBoardPanel();
 
   // Clip drawing to the board.
   ctx.save();

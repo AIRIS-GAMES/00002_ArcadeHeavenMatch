@@ -18,13 +18,9 @@ export function createOhsunAppearance(config, loadedCharacters, options = {}) {
     ? loadedCharacters.filter(character => character.asset !== previousAsset)
     : loadedCharacters;
   const character = pickRandomOhsunItem(candidates.length ? candidates : loadedCharacters, random);
-  const messages = config?.messages ?? {};
 
   return {
     asset: character.asset,
-    image: character.image,
-    entryMessage: pickRandomOhsunItem(messages.entry, random) ?? "",
-    specialMessage: pickRandomOhsunItem(messages.special, random) ?? "",
-    exitMessage: pickRandomOhsunItem(messages.exit, random) ?? ""
+    image: character.image
   };
 }

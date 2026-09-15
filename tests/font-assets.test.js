@@ -29,7 +29,7 @@ test("M PLUS Rounded 1cの必要な3ウェイトとライセンスを同梱す�
 test("フォントは外部配信に依存せず、ビルドとCanvasにも適用される", () => {
   assert.doesNotMatch(html, /fonts\.googleapis\.com|fonts\.gstatic\.com/);
   assert.match(html, /const FONT_FAMILY = .*M PLUS Rounded 1c/);
-  assert.match(html, /ctx\.font=canvasFont\(800,dialogFontSize\)/);
+  assert.doesNotMatch(html, /dialogFontSize|entryMessage|specialMessage|exitMessage/);
   assert.match(html, /loadGameFonts\(\)/);
   assert.match(build, /join\(root, "fonts"\).*join\(dist, "fonts"\)/);
 });

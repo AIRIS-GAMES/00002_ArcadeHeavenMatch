@@ -40,7 +40,6 @@ const sandbox = {
   requestAnimationFrame: () => {},
   console, Math, Set, Number,
 };
-sandbox.window.AudioContext = undefined;
 sandbox.globalThis = sandbox;
 
 const html = fs.readFileSync(__dirname + "/index.html", "utf8");

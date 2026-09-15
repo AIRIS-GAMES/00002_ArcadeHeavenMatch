@@ -36,8 +36,9 @@ export const GAME_CONFIG = Object.freeze({
     fullPromoEvery: 10
   }),
   performance: Object.freeze({
-    activeFrameRate: 24,
+    activeFrameRate: 60,
     maxDpr: 2,
+    maxCanvasPixels: 1500000,
     particleDensity: 0.5,
     maxParticles: 150,
     reducedEffects: true

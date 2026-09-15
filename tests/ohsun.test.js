@@ -18,12 +18,10 @@ const config = { ...OHSUN_EVENT_CONFIG, timing:{ ...OHSUN_EVENT_CONFIG.timing } 
 test("copyrighted character variants are configured without the legacy image", () => {
   assert.equal(OHSUN_EVENT_CONFIG.characterAssets.length, 7);
   assert.ok(OHSUN_EVENT_CONFIG.characterAssets.every(asset => /ohsun_(?:0[7-9]|1[0-3])\.png$/.test(asset)));
-  assert.ok(OHSUN_EVENT_CONFIG.messages.entry.length >= 2);
-  assert.ok(OHSUN_EVENT_CONFIG.messages.special.length >= 2);
-  assert.ok(OHSUN_EVENT_CONFIG.messages.exit.length >= 2);
+  assert.equal(OHSUN_EVENT_CONFIG.messages, undefined);
 });
 
-test("Sansan Time chooses a loaded image and messages without an immediate image repeat", () => {
+test("Sansan Time chooses an unchanged image without dialogue or immediate repetition", () => {
   const loaded = OHSUN_EVENT_CONFIG.characterAssets.slice(0, 3).map(asset => ({ asset, image:{ asset } }));
   const appearance = createOhsunAppearance(OHSUN_EVENT_CONFIG, loaded, {
     previousAsset:loaded[0].asset,
@@ -31,9 +29,7 @@ test("Sansan Time chooses a loaded image and messages without an immediate image
   });
   assert.equal(appearance.asset, loaded[1].asset);
   assert.equal(appearance.image, loaded[1].image);
-  assert.equal(appearance.entryMessage, OHSUN_EVENT_CONFIG.messages.entry[0]);
-  assert.equal(appearance.specialMessage, OHSUN_EVENT_CONFIG.messages.special[0]);
-  assert.equal(appearance.exitMessage, OHSUN_EVENT_CONFIG.messages.exit[0]);
+  assert.deepEqual(Object.keys(appearance).sort(), ["asset", "image"]);
 });
 
 test("3・4・5個以上のマッチ値と連鎖ボーナスを計算する", ()=>{

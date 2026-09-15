@@ -16,7 +16,7 @@ test("共通設定はコラボ固有情報を含まない", () => {
   const source = readFileSync(join(process.cwd(), "src", "config", "game-config.js"), "utf8");
   assert.doesNotMatch(source, /ohsun|おっ！サン/i);
   assert.equal(GAME_CONFIG.stage.timeSeconds, 60);
-  assert.equal(GAME_CONFIG.performance.activeFrameRate, 24);
+  assert.equal(GAME_CONFIG.performance.activeFrameRate, 60);
   assert.equal(GAME_CONFIG.performance.maxDpr, 2);
   assert.equal(GAME_CONFIG.performance.reducedEffects, true);
 });

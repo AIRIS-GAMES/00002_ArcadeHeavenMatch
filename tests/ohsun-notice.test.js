@@ -2,9 +2,28 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import vm from "node:vm";
 import { OHSUN_EVENT_CONFIG } from "../src/features/ohsun/config.js";
 import { formatOhsunEventPeriod } from "../src/features/ohsun/OhsunEventNotice.js";
 import { calculateOhsunAccentSlots, calculateOhsunHeroLayout } from "../src/features/ohsun/OhsunBackdrop.js";
+
+test("compact phones reserve HUD space even when no initial character layout fits", () => {
+  const html=readFileSync(join(process.cwd(),"index.html"),"utf8");
+  const start=html.indexOf("function needsOhsunHudSpace(){");
+  const code=html.slice(start,html.indexOf("function loadOhsunCharacter",start));
+  for(const [width,height,hudBottom,boardY,boardHeight] of [[320,568,153.53125,183,344],[390,664,165.765625,197,424]]){
+    const board={x:9.5,y:boardY,width:width-19,height:boardHeight};
+    const options={width,height,board,imageAspect:581/593};
+    const layout=calculateOhsunHeroLayout({...options,safeTop:hudBottom+8});
+    assert.equal(layout,null);
+    assert.equal(vm.runInNewContext(code+"needsOhsunHudSpace()",{
+      ohsunCharacterImg:{},cs:43,getOhsunHeroLayoutCached:()=>layout
+    }),true);
+    const reserved=calculateOhsunHeroLayout({...options,safeTop:8});
+    assert.ok(reserved.character.height>=140);
+    assert.ok(reserved.character.y+reserved.character.height<board.y);
+  }
+});
 
 test("the collaboration copyright notice uses the approved wording", () => {
   const root = process.cwd();
@@ -79,13 +98,16 @@ test("チュートリアルでは上部の説明スペースを避け、狭い�
   assert.deepEqual(smallSlots, []);
 });
 
-test("発動中の主役と吹き出しは盤面外の同じ専用領域に収まる", () => {
+test("登場画像は吹き出しの余白を使って大きくなり、盤面外に収まる", () => {
   const board = { x:3, y:255, width:369, height:424 };
   const layout = calculateOhsunHeroLayout({
     width:375, height:812, board, safeTop:4, imageAspect:581/593
   });
   assert.equal(layout.orientation, "row");
-  for (const item of [layout.character, layout.bubble]) {
+  assert.ok(layout.character.height > 200);
+  assert.equal(layout.bubble, undefined);
+  assert.ok(Math.abs(layout.character.width/layout.character.height-581/593)<0.0001);
+  for (const item of [layout.character]) {
     assert.ok(item.x >= 0 && item.y >= 0);
     assert.ok(item.x + item.width <= 375 && item.y + item.height <= 812);
     const overlapsBoard = item.x < board.x + board.width && item.x + item.width > board.x &&
@@ -102,5 +124,7 @@ test("発動中の主役と吹き出しは盤面外の同じ専用領域に収�
   });
   assert.equal(wideLayout.orientation, "column");
   assert.ok(wideLayout.character.x >= 850);
-  assert.ok(wideLayout.bubble.x >= 850);
+  assert.ok(wideLayout.character.width > 300);
+  assert.ok(wideLayout.character.x + wideLayout.character.width <= 1280);
+  assert.ok(wideLayout.character.y + wideLayout.character.height <= 800);
 });

@@ -2,5 +2,12 @@
 	"appId": "com.airisgames.arcadeheavenmatch",
 	"appName": "ArcadeHeaven Match",
 	"webDir": "dist",
-	"packageClassList": []
+	"plugins": {
+		"App": {
+			"disableBackButtonHandler": true
+		}
+	},
+	"packageClassList": [
+		"AppPlugin"
+	]
 }

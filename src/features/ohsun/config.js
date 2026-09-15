@@ -20,23 +20,7 @@ export const OHSUN_EVENT_CONFIG = Object.freeze({
     "Asset/collaborations/ohsun/characters/ohsun_12.png",
     "Asset/collaborations/ohsun/characters/ohsun_13.png"
   ]),
-  messages: Object.freeze({
-    entry: Object.freeze([
-      "しゃあないな、わしに任せとき！",
-      "待たせたな！おっ！サンの出番や！",
-      "よっしゃ、いっちょ照らしたろ！"
-    ]),
-    special: Object.freeze([
-      "サンサンタイム！",
-      "まとめて照らしたるで！",
-      "お日さんパワー、全開や！"
-    ]),
-    exit: Object.freeze([
-      "聞いてたんとちゃうな……",
-      "ほな、あとは頼んだで〜！",
-      "ちょっと飛ばしすぎたわ……"
-    ])
-  }),
+  // 公式画像は改変せず、キャラクターのセリフは設定しない。
   screenShakeEnabled: true,
   eventVersion: "review-1",
   notice: Object.freeze({
