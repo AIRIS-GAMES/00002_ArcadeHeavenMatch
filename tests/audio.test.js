@@ -49,8 +49,8 @@ function setup(saved = "0", extra = {}) {
   };
   const context = vm.createContext({
     Audio, document, window, performance: { now: () => time }, Promise,
-    localStorage: { getItem: k => storage.get(k), setItem: (k, v) => storage.set(k, v) },
-    stopGameLoop() { }, resetFrameClock() { }, ensureGameLoop() { }, ...extra
+    gameStorage: { getItem: k => storage.get(k), setItem: (k, v) => storage.set(k, v) },
+    stopGameLoop() { }, resetFrameClock() { }, ensureGameLoop() { }, resetPointerInput() { }, ...extra
   });
   vm.runInContext(sound + '\nlet state="idle"; applyMuted();', context);
   const run = code => vm.runInContext(code, context);
@@ -127,7 +127,7 @@ test("chain-rate effects are pooled and preloaded, the rest load on first use", 
 });
 
 test("a gesture primes the pooled elements muted, then restores their mute state", async () => {
-  const h = setup();
+  const h = setup("0", { window: { addEventListener() {} } });
   h.run("unlockAudio()");
   const primed = h.effects().filter(e => e.calls.includes("play"));
   assert.equal(primed.length, 16, "swap, deny and clear-0..5, two voices each");
@@ -137,6 +137,33 @@ test("a gesture primes the pooled elements muted, then restores their mute state
   for (const e of h.effects()) e.calls.length = 0;
   h.run("unlockAudio()");
   assert.ok(h.effects().every(e => e.calls.length === 0));
+});
+
+test("native startup starts requested audio without priming every pooled effect", async () => {
+  const h = setup();
+  h.run("unlockAudio(); playBgm(); sndSwap()");
+  await h.settled();
+  assert.equal(h.bgm.paused, false);
+  assert.equal(h.pool("swap")[0].paused, false);
+  assert.equal(h.pool("swap")[0].muted, false);
+  assert.equal(h.effects().filter(e => e.calls.includes("play")).length, 1);
+});
+
+test("pending browser priming respects sound settings changed during the gesture", async () => {
+  for (const saved of ["0", "1"]) {
+    const h = setup(saved, { window: { addEventListener() {} } });
+    h.run("unlockAudio(); toggleMute()");
+    await h.settled();
+    assert.ok(h.elements.every(e => e.muted === (saved === "0")));
+  }
+});
+
+test("browser priming completion does not stop an effect already used by the game", async () => {
+  const h = setup("0", { window: { addEventListener() {} } });
+  h.run("unlockAudio(); sndSwap()");
+  await h.settled();
+  assert.equal(h.pool("swap")[0].paused, false);
+  assert.equal(h.pool("swap")[0].muted, false);
 });
 
 test("a rewound voice starts with play() alone, with no seek on the trigger", async () => {

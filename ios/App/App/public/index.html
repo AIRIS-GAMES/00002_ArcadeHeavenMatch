@@ -434,7 +434,7 @@
   /* 詳細説明は初回チュートリアル／「遊び方」から開くため、メニューでは開始導線を優先する。 */
   #title .howto-card { display:none; }
   #howto-guide {
-    position:fixed; height:100dvh; min-height:0;
+    position:fixed; height:100vh; height:100dvh; min-height:0;
     z-index:52;
     padding:calc(env(safe-area-inset-top,0px) + 14px) 12px calc(env(safe-area-inset-bottom,0px) + 14px);
     background:rgba(69,48,78,.58);
@@ -443,6 +443,7 @@
   #howto-guide .howto-guide-panel {
     width:min(92vw,460px);
     max-width:460px;
+    max-height:calc(100vh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 28px);
     max-height:calc(100svh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 28px);
     padding:14px;
     gap:10px;
@@ -1075,13 +1076,14 @@
     border-radius:28px; padding:22px 26px; max-width:340px; width:90%;
     box-shadow:0 10px 30px rgba(170,120,190,.3);
     display:flex; flex-direction:column; align-items:center; gap:12px;
+    max-height:calc(100vh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
     max-height:calc(100svh - 32px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));
     overflow-y:auto;
   }
   h2 { font-size:24px; color:#9b6fc9; text-shadow:0 2px 0 #fff; }
   .sub { font-size:13px; color:#c08cc0; font-weight:500; }
   #clear {
-    position:fixed; height:100dvh; min-height:0;
+    position:fixed; height:100vh; height:100dvh; min-height:0;
     padding:calc(12px + env(safe-area-inset-top,0px)) 16px calc(12px + env(safe-area-inset-bottom,0px));
     overflow:hidden;
   }
@@ -1757,12 +1759,13 @@ import {
   OhsunStageResult,
   calculateOhsunHeroLayout,
   createOhsunAppearance,
+  getOhsunPresentation,
   createOhsunMenuBackdrop,
   drawOhsunBackdrop,
   drawOhsunSafeAccents,
   findMostCommonColorCells,
   isOhsunEventActive
-} from "./src/features/ohsun/index.js?v=20260911-3";
+} from "./src/features/ohsun/index.js?v=20260917-1";
 import {
   GAME_CONFIG,
   createStageStats,
@@ -1771,6 +1774,7 @@ import {
   isStageComplete,
   missionProgress
 } from "./src/config/game-config.js?v=20260911-2";
+import { gameStorage, readSavedInteger } from "./src/storage.js";
 //================ Basic Settings ================
 const SUPABASE_CONFIG = {
   url: "https://rebuforetcmhrqdqfxfb.supabase.co",
@@ -1833,6 +1837,7 @@ const cv = document.getElementById("game");
 const ctx = cv.getContext("2d");
 let W=0, H=0, DPR=1;
 let cs=0, bx=0, by=0;       // cell size and board origin
+let layoutHudBottom=76;
 let cachedHudRect = null;
 let cachedOhsunHeroLayout = null;
 let cachedOhsunHeroLayoutKey = "";
@@ -1880,8 +1885,8 @@ function resize(){
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
   const hud = document.getElementById("hud");
-  const hudH = hud && hud.style.display!=="none" ? hud.offsetHeight : 76;
-  const topPad = Math.max(86, hudH + 12), botPad = 24;
+  layoutHudBottom = hud && hud.style.display!=="none" ? hud.getBoundingClientRect().bottom : 76;
+  const topPad = Math.max(86, layoutHudBottom + 12), botPad = 24;
   cs = Math.floor(Math.min((W-16)/COLS, (H-topPad-botPad)/ROWS));
   bx = (W - cs*COLS)/2;
   by = topPad + (H-topPad-botPad - cs*ROWS)/2;
@@ -1908,10 +1913,10 @@ resize();
 //   3. At most three effects overlap and one key retriggers at most every 100 ms.
 let audioUnlocked = false;
 let audioSuspended = false;
-let nativeAudioInactive = false;
+let nativeAppInactive = false;
 let bgmWanted = false;
 const bgm = document.getElementById("bgm");
-let muted = localStorage.getItem("ohanapon-muted")==="1";
+let muted = gameStorage.getItem("ohanapon-muted")==="1";
 // The attenuated bgm.mp3 peaks at -6.6 dBFS, so this lands at -16.5 dBFS: below the 0.20 the
 // brief asks for when measured against the unattenuated original, and high enough to survive
 // screen recording. See docs/audio-migration.md.
@@ -1986,7 +1991,7 @@ function hideVolumePanel(){
 }
 function toggleMute(){
   muted = !muted;
-  localStorage.setItem("ohanapon-muted", muted ? "1" : "0");
+  gameStorage.setItem("ohanapon-muted", muted ? "1" : "0");
   applyMuted();
   if(muted) pauseBgm();
   else if(state!=="title" && state!=="over" && state!=="paused") playBgm();
@@ -1994,14 +1999,15 @@ function toggleMute(){
 function audio(){
   unlockAudio();
 }
-// iOS unlocks media elements one at a time, inside a gesture. Effects are triggered from the
-// game loop, never from a tap, so the pooled ones are started muted once on the first gesture.
+// Browser media policies can require a gesture for each element. Prime the pooled effects
+// there; Capacitor's native webview disables that requirement.
 function primeSfxElement(element){
-  const wasMuted = element.muted;
   const settle = ()=>{
-    element.pause();
-    rewind(element);
-    element.muted = wasMuted;
+    if(!activeSfx.has(element)){
+      element.pause();
+      rewind(element);
+    }
+    element.muted = muted;
   };
   try{
     element.muted = true;
@@ -2009,15 +2015,19 @@ function primeSfxElement(element){
     if(promise && typeof promise.then === "function") promise.then(settle, settle);
     else settle();
   }catch(e){
-    element.muted = wasMuted;
+    element.muted = muted;
   }
 }
 function unlockAudio(){
   if(!audioUnlocked){
     audioUnlocked = true;
-    for(const [key, pool] of sfx){
-      if(!SFX_HOT.has(sfxFamily(key))) continue;
-      for(const element of pool) primeSfxElement(element);
+    // Capacitor's WKWebView allows media playback without per-element gestures.
+    // Avoid starting 16 muted media pipelines alongside BGM on native startup.
+    if(!window.Capacitor?.isNativePlatform?.()){
+      for(const [key, pool] of sfx){
+        if(!SFX_HOT.has(sfxFamily(key))) continue;
+        for(const element of pool) primeSfxElement(element);
+      }
     }
   }
   resumeBgm();
@@ -2030,7 +2040,7 @@ function tryPlay(element){
 }
 function resumeBgm(){
   if(!bgm || !bgmWanted || muted || !audioUnlocked || audioSuspended ||
-    nativeAudioInactive || document.hidden || !bgm.paused) return;
+    nativeAppInactive || document.hidden || !bgm.paused) return;
   setBgmElementVolume();
   tryPlay(bgm);
 }
@@ -2048,7 +2058,7 @@ function stopBgm(){
   if(bgm && bgm.src) bgm.currentTime = 0;
 }
 function playSfx(key){
-  if(muted || !audioUnlocked || audioSuspended || nativeAudioInactive || document.hidden) return;
+  if(muted || !audioUnlocked || audioSuspended || nativeAppInactive || document.hidden) return;
   const pool = sfx.get(key);
   if(!pool) return;
   const now = performance.now();
@@ -2064,6 +2074,7 @@ function playSfx(key){
   }
   sfxLastStarted.set(key,now);
   activeSfx.add(element);
+  element.muted = muted;
   try{
     const result=element.play();
     if(result && typeof result.catch==="function") result.catch(()=>{
@@ -2102,6 +2113,7 @@ document.addEventListener("visibilitychange", ()=>{
   if(document.hidden){
     suspendAudio();
     stopGameLoop();
+    resetPointerInput();
     return;
   }
   resetFrameClock();
@@ -2125,9 +2137,16 @@ if(capacitor?.isNativePlatform?.()){
     const app = capacitor.Plugins?.App;
     if(app?.addListener){
       Promise.resolve(app.addListener("appStateChange", ({isActive})=>{
-        nativeAudioInactive = !isActive;
-        if(isActive) restoreAudio();
-        else suspendAudio();
+        nativeAppInactive = !isActive;
+        resetPointerInput();
+        if(isActive){
+          resetFrameClock();
+          ensureGameLoop();
+          restoreAudio();
+        }else{
+          suspendAudio();
+          stopGameLoop();
+        }
       })).catch(error=>console.warn("[audio] Native lifecycle listener unavailable.", error));
     }
   }catch(error){
@@ -2141,22 +2160,23 @@ let state = "title"; // title, idle, swap, swapback, clear, fall, practiceDone, 
 let level=1, score=0, target=0, timeLeft=0, lives=5, combo=1;
 let currentStageRules = getStageRules(level);
 let stageStats = createStageStats(NTYPES);
-let best = +(localStorage.getItem("ohanapon-best")||0);
-let coins = +(localStorage.getItem("ohanapon-coins")||0);
+let best = readSavedInteger(gameStorage, "ohanapon-best");
+let coins = readSavedInteger(gameStorage, "ohanapon-coins");
 // コイン単位を10倍にした際、既存セーブを一度だけ移行する
 const COIN_SCALE_KEY = "ohanapon-coin-scale";
-if(localStorage.getItem(COIN_SCALE_KEY) !== "10"){
-  coins *= 10;
-  localStorage.setItem("ohanapon-coins", String(coins));
-  localStorage.setItem(COIN_SCALE_KEY, "10");
+if(gameStorage.getItem(COIN_SCALE_KEY) !== "10"){
+  coins = Math.min(Number.MAX_SAFE_INTEGER, coins * 10);
+  gameStorage.setItem("ohanapon-coins", String(coins));
+  gameStorage.setItem(COIN_SCALE_KEY, "10");
 }
 // ステージクリア報酬: スコア10点ごとに1コイン（最低10枚）
 function coinReward(s){
   return Math.max(GAME_CONFIG.economy.minimumClearReward,Math.floor(s/GAME_CONFIG.economy.scorePerCoin));
 }
 function addCoins(n){
-  coins += n;
-  localStorage.setItem("ohanapon-coins", String(coins));
+  if(!Number.isSafeInteger(n) || n<0) return;
+  coins = Math.min(Number.MAX_SAFE_INTEGER, coins + n);
+  gameStorage.setItem("ohanapon-coins", String(coins));
 }
 // 数値を0からシャッと数え上げる（クリア画面の獲得コイン用）
 let countUpRAF = 0;
@@ -2177,17 +2197,17 @@ function animateCount(el, to, dur, prefix, from){
   countUpRAF = requestAnimationFrame(step);
 }
 function spendCoins(n){
-  if(coins < n) return false;
+  if(!Number.isSafeInteger(n) || n<0 || coins < n) return false;
   coins -= n;
-  localStorage.setItem("ohanapon-coins", String(coins));
+  gameStorage.setItem("ohanapon-coins", String(coins));
   return true;
 }
 // 進行度: クリア済みの最高ステージ。「つづきから」は progress+1 から。
-let progress = +(localStorage.getItem("ohanapon-progress")||0);
+let progress = readSavedInteger(gameStorage, "ohanapon-progress");
 function saveProgress(lv){
   if(lv > progress){
     progress = lv;
-    localStorage.setItem("ohanapon-progress", String(progress));
+    gameStorage.setItem("ohanapon-progress", String(progress));
   }
 }
 
@@ -2206,10 +2226,11 @@ const PLAYER_NAME_BLOCKLIST = [
   "管理者",
   "スタッフ"
 ];
-let playerName = normalizePlayerNameDisplay(localStorage.getItem(PLAYER_NAME_KEY) || "Player") || "Player";
+let playerName = normalizePlayerNameDisplay(gameStorage.getItem(PLAYER_NAME_KEY) || "Player") || "Player";
 let supabaseClient = null;
 let supabaseAuthPromise = null;
 let supabaseUserId = null;
+let rankingLoadGeneration = 0;
 
 function isSupabaseConfigured(){
   return !!(
@@ -2255,7 +2276,7 @@ function savePlayerName(name){
   const valid = validatePlayerName(name);
   if(!valid.ok) return valid;
   playerName = valid.name;
-  localStorage.setItem(PLAYER_NAME_KEY, playerName);
+  gameStorage.setItem(PLAYER_NAME_KEY, playerName);
   return valid;
 }
 function formatNumber(n){
@@ -2268,7 +2289,7 @@ function saveBestScore(){
   const total=rankingScoreForCurrentRun();
   if(total>best){
     best=total;
-    localStorage.setItem("ohanapon-best",String(best));
+    gameStorage.setItem("ohanapon-best",String(best));
   }
   return total;
 }
@@ -2317,10 +2338,11 @@ function ensureSupabaseAuth(){
       supabaseUserId = session && session.user ? session.user.id : null;
       return session;
     }catch(e){
+      supabaseUserId = null;
       console.error("[ranking] Supabase anonymous auth failed.", e);
       return null;
     }
-  })();
+  })().finally(()=>{ supabaseAuthPromise = null; });
   return supabaseAuthPromise;
 }
 function setRankingStatus(text){
@@ -2361,8 +2383,10 @@ function renderRankingRows(rows){
   });
 }
 async function loadRanking(){
+  const generation = ++rankingLoadGeneration;
   setRankingStatus("読み込み中...");
   const session = await ensureSupabaseAuth();
+  if(generation!==rankingLoadGeneration) return;
   const client = getSupabaseClient();
   if(!session || !client){
     setRankingStatus("ランキングに接続できません");
@@ -2376,30 +2400,36 @@ async function loadRanking(){
       .order("high_score", { ascending:false })
       .order("cleared_stage", { ascending:false })
       .limit(100);
+    if(generation!==rankingLoadGeneration) return;
     if(result.error) throw result.error;
     renderRankingRows(result.data || []);
     setRankingStatus("");
   }catch(e){
+    if(generation!==rankingLoadGeneration) return;
     console.error("[ranking] Failed to load leaderboard.", e);
     setRankingStatus("ランキングを読み込めませんでした");
     renderRankingRows([]);
   }
 }
 async function submitLeaderboardScore(reason){
+  // Capture this run before authentication can yield to a new stage/menu action.
+  const payload = {
+    p_player_name: playerName,
+    p_cleared_stage: Math.max(0, Math.floor(progress)),
+    p_high_score: Math.max(0, Math.floor(best), Math.floor(rankingScoreForCurrentRun()))
+  };
   const session = await ensureSupabaseAuth();
   const client = getSupabaseClient();
-  if(!session || !client) return;
+  if(!session || !client) return false;
   try{
-    const result = await client.rpc("submit_score", {
-      p_player_name: playerName,
-      p_cleared_stage: Math.max(0, progress | 0),
-      p_high_score: Math.max(0, best | 0, rankingScoreForCurrentRun() | 0)
-    });
+    const result = await client.rpc("submit_score", payload);
     if(result.error) throw result.error;
     console.log("[ranking] Score synced:", reason);
+    return true;
   }catch(e){
     console.error("[ranking] Failed to submit score:", reason, e);
-    if(reason === "player_name") setRankingStatus("この名前は使用できません");
+    if(reason === "player_name") setRankingStatus("名前を端末に保存しました。ランキングへの送信に失敗しました");
+    return false;
   }
 }
 function syncLeaderboardScore(reason){
@@ -2412,16 +2442,17 @@ function openRanking(){
   loadRanking();
 }
 function closeRanking(){
+  rankingLoadGeneration++;
   document.getElementById("ranking").classList.add("hidden");
 }
 // SHOPブースト: 次に開始するステージ1回だけ有効
 const PRICE_TIME = GAME_CONFIG.economy.timeBoostPrice, PRICE_LIFE = GAME_CONFIG.economy.lifeBoostPrice;
 const BOOST_TIME_SEC = GAME_CONFIG.economy.timeBoostSeconds, BOOST_LIFE_NUM = GAME_CONFIG.economy.lifeBoostAmount;
-let boostTime = localStorage.getItem("ohanapon-boost-time")==="1";
-let boostLife = localStorage.getItem("ohanapon-boost-life")==="1";
+let boostTime = gameStorage.getItem("ohanapon-boost-time")==="1";
+let boostLife = gameStorage.getItem("ohanapon-boost-life")==="1";
 function saveBoosts(){
-  localStorage.setItem("ohanapon-boost-time", boostTime?"1":"0");
-  localStorage.setItem("ohanapon-boost-life", boostLife?"1":"0");
+  gameStorage.setItem("ohanapon-boost-time", boostTime?"1":"0");
+  gameStorage.setItem("ohanapon-boost-life", boostLife?"1":"0");
 }
 let swapInfo = null;   // {r1,c1,r2,c2,t}
 let pausedState = null;
@@ -2445,10 +2476,12 @@ function clearTransientStageEffects(){
   }
   clearTimeout(clearPanelTimer);
   clearPanelTimer = 0;
+  resetPointerInput();
+  selected = null;
 }
 let practiceStep = 1;
 let practiceStarUsed = false;
-let tutorialCompleted = localStorage.getItem(GAME_CONFIG.tutorial.completedStorageKey)==="1";
+let tutorialCompleted = gameStorage.getItem(GAME_CONFIG.tutorial.completedStorageKey)==="1";
 let ohsunGaugeView = null;
 let ohsunMenuBackdrop = null;
 let ohsunEventNotice = null;
@@ -2479,6 +2512,7 @@ const ohsunManager = new OhsunEventManager(OHSUN_EVENT_CONFIG, {
   onEntry(){
     selected = null;
     hint = null;
+    sndBell();
     setOhsunCinematic(needsOhsunHudSpace());
     state = "ohsun";
   },
@@ -2568,8 +2602,7 @@ async function initializeOhsunEvent(){
   if(!ohsunGaugeView) ohsunGaugeView = new OhsunGaugeView(document.getElementById("hud"), OHSUN_EVENT_CONFIG.gaugeMax);
   if(!ohsunMenuBackdrop) ohsunMenuBackdrop = createOhsunMenuBackdrop(document.getElementById("title"), ohsunBackdropImg, OHSUN_EVENT_CONFIG.backdrop);
   if(!ohsunEventNotice) ohsunEventNotice = new OhsunEventNotice(document.querySelector("#title .title-meta"), ohsunBackdropImg, OHSUN_EVENT_CONFIG);
-  ohsunGaugeView.root.hidden = true;
-  ohsunManager.reset(true);
+  resetOhsunForLevel(!practiceMode && state!=="title" && state!=="over" && state!=="practiceDone", true);
   invalidateRenderCaches();
 }
 
@@ -3028,8 +3061,8 @@ function announceNewSpecials(spawns){
     const message=GAME_CONFIG.tutorial.specialGuides[spawn.t];
     if(!message) continue;
     const key=GAME_CONFIG.tutorial.specialSeenStoragePrefix+spawn.t;
-    if(localStorage.getItem(key)==="1") continue;
-    localStorage.setItem(key,"1");
+    if(gameStorage.getItem(key)==="1") continue;
+    gameStorage.setItem(key,"1");
     const guideSize=Math.max(13,Math.min(18,(W-28)/Math.max(1,Array.from(message).length)));
     floats.push({x:bx+cs*COLS/2,y:Math.max(by+32,H*.24),txt:message,life:2.4,color:"#9b6fc9",size:guideSize});
   }
@@ -3136,7 +3169,7 @@ function finishPracticeStar(){
   practiceMode = false;
   practiceStarUsed = false;
   tutorialCompleted = true;
-  localStorage.setItem(GAME_CONFIG.tutorial.completedStorageKey,"1");
+  gameStorage.setItem(GAME_CONFIG.tutorial.completedStorageKey,"1");
   state = "practiceDone";
   selected = null;
   hint = null;
@@ -3220,6 +3253,7 @@ function startPracticeStep(step){
   hint = [ps[0][0],ps[0][1],ps[1][0],ps[1][1]];
   state = "idle";
   ensureGameLoop();
+  playBgm();
 }
 
 function startLevel(){
@@ -3250,6 +3284,7 @@ function startLevel(){
   updateHUD();
   state="idle"; idleTime=0; hint=null;
   ensureGameLoop();
+  playBgm();
   if(usedBoost) floats.push({x:W/2,y:H*0.3,txt:"ブースト！",life:1.4,color:"#e0a010",size:28});
   gaEvent("addProgressionEvent", "Start", gaStageId());
 }
@@ -3372,6 +3407,7 @@ function pauseGame(){
   pauseBgm();
   pausedState = state;
   state = "paused";
+  resetPointerInput();
   hideVolumePanel();
   document.getElementById("pause").classList.remove("hidden");
   stopGameLoop();
@@ -3409,6 +3445,7 @@ function returnToTitle(){
   pausedState = null;
   hideVolumePanel();
   selected = null;
+  resetPointerInput();
   hint = null;
   idleTime = 0;
   resetOhsunForLevel(false);
@@ -3470,13 +3507,13 @@ const PROMO_APPS = [
 // 10ステージごとのPR画面。この順番で1本ずつ巡回する
 const FULL_PROMO_ORDER = ["6792287027", "6789935783", "6797260932", "6790154239"];
 const FULL_PROMO_EVERY = GAME_CONFIG.economy.fullPromoEvery;
-let fullPromoIdx = +(localStorage.getItem("ohanapon-fullpromo-idx")||0);
+let fullPromoIdx = readSavedInteger(gameStorage, "ohanapon-fullpromo-idx");
 let pendingNextStage = false;
 
 function nextFullPromoApp(){
   const id = FULL_PROMO_ORDER[fullPromoIdx % FULL_PROMO_ORDER.length];
   fullPromoIdx = (fullPromoIdx + 1) % FULL_PROMO_ORDER.length;
-  localStorage.setItem("ohanapon-fullpromo-idx", String(fullPromoIdx));
+  gameStorage.setItem("ohanapon-fullpromo-idx", String(fullPromoIdx));
   return PROMO_APPS.find(a => a.id === id) || null;
 }
 // 10ステージごとに表示。出したら true を返す
@@ -3553,9 +3590,12 @@ function startPromoRotation(){
 // WebView(Capacitor)とWeb版の両方で外部リンクを開けるようにする
 function openExternal(url){
   const B = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser;
-  if(B && B.open){ B.open({ url }); return; }
-  const w = window.open(url, "_blank", "noopener");
-  if(!w) location.href = url;   // ポップアップ抑止やWebViewでの失敗に備える
+  if(B && B.open){
+    Promise.resolve(B.open({ url })).catch(error=>console.warn("[links] Could not open browser.", error));
+    return;
+  }
+  // noopener returns null even on success; never replace the game based on it.
+  window.open(url, "_blank", "noopener");
 }
 document.getElementById("promo-banner").addEventListener("click", ()=>{
   const app = PROMO_APPS[promoIndex];
@@ -3569,8 +3609,8 @@ startPromoRotation();
 
 //================ Login Bonus ================
 const LOGIN_REWARDS = GAME_CONFIG.economy.loginRewards; // 7日周期
-let loginLast = localStorage.getItem("ohanapon-login-last") || "";
-let loginStreak = +(localStorage.getItem("ohanapon-login-streak")||0);
+let loginLast = gameStorage.getItem("ohanapon-login-last") || "";
+let loginStreak = readSavedInteger(gameStorage, "ohanapon-login-streak");
 let pendingLoginDay = 0;   // 受取待ちの日数（1〜7）。0なら受取対象なし
 let loginCloseTimer = 0;
 
@@ -3584,13 +3624,14 @@ function yesterdayKey(){ const d = new Date(); d.setDate(d.getDate()-1); return 
 
 // 受け取れる場合のみ true を返し、pendingLoginDay を設定する
 function checkLoginBonus(){
+  pendingLoginDay = 0;
   const today = todayKey();
   if(loginLast === today) return false;          // 今日は受取済み
   if(loginLast > today){                          // 日付が巻き戻された → 不正とみなす
     loginStreak = 0;
     loginLast = today;
-    localStorage.setItem("ohanapon-login-last", loginLast);
-    localStorage.setItem("ohanapon-login-streak", "0");
+    gameStorage.setItem("ohanapon-login-last", loginLast);
+    gameStorage.setItem("ohanapon-login-streak", "0");
     return false;
   }
   // 前日に受け取っていれば継続、そうでなければ1日めにリセット
@@ -3618,15 +3659,15 @@ function showLoginBonus(){
   document.getElementById("login-bonus").classList.remove("hidden");
 }
 function claimLoginBonus(){
-  if(!pendingLoginDay) return;
+  if(!pendingLoginDay || !checkLoginBonus()) return;
   const day = pendingLoginDay;
   const amount = LOGIN_REWARDS[day-1];
   const before = coins;
   addCoins(amount);
   loginStreak = day;
   loginLast = todayKey();
-  localStorage.setItem("ohanapon-login-streak", String(loginStreak));
-  localStorage.setItem("ohanapon-login-last", loginLast);
+  gameStorage.setItem("ohanapon-login-streak", String(loginStreak));
+  gameStorage.setItem("ohanapon-login-last", loginLast);
   gaEvent("addResourceEvent","Source","coin",amount,"login_bonus","day"+day);
   pendingLoginDay = 0;
   document.getElementById("btn-login-reminder").classList.add("hidden");
@@ -3773,7 +3814,7 @@ document.getElementById("btn-ranking-close").addEventListener("click", ()=>{
   audio();
   closeRanking();
 });
-document.getElementById("btn-ranking-save").addEventListener("click", ()=>{
+document.getElementById("btn-ranking-save").addEventListener("click", async()=>{
   audio();
   const result = savePlayerName(document.getElementById("ranking-name-input").value);
   if(!result.ok){
@@ -3782,8 +3823,8 @@ document.getElementById("btn-ranking-save").addEventListener("click", ()=>{
   }
   document.getElementById("ranking-name-input").value = result.name;
   setRankingStatus("名前を保存しました");
-  syncLeaderboardScore("player_name");
-  setTimeout(()=>loadRanking(), 350);
+  const saved = await submitLeaderboardScore("player_name");
+  if(saved && playerName===result.name && !document.getElementById("ranking").classList.contains("hidden")) loadRanking();
 });
 document.getElementById("ranking-name-input").addEventListener("keydown", e=>{
   if(e.key === "Enter"){
@@ -3826,6 +3867,7 @@ function openIngameShop(){
     pauseBgm();
     stopGameLoop();
   }
+  resetPointerInput();
   refreshIngameShop();
   document.getElementById("ingame-shop").classList.remove("hidden");
 }
@@ -4016,23 +4058,25 @@ function loadGameAnalytics(){
 const privacyBanner = document.getElementById("privacy-banner");
 const PRIVACY_KEY = "airis-privacy-choice";
 function setPrivacyChoice(choice){
-  localStorage.setItem(PRIVACY_KEY, choice);
+  gameStorage.setItem(PRIVACY_KEY, choice);
   privacyBanner.classList.add("hidden");
   if(choice==="accepted") loadGameAnalytics();
 }
-if(!localStorage.getItem(PRIVACY_KEY)) privacyBanner.classList.remove("hidden");
+if(!gameStorage.getItem(PRIVACY_KEY)) privacyBanner.classList.remove("hidden");
 // 同意済みのユーザーのみ計測を開始する
-if(localStorage.getItem(PRIVACY_KEY)==="accepted") loadGameAnalytics();
+if(gameStorage.getItem(PRIVACY_KEY)==="accepted") loadGameAnalytics();
 document.getElementById("btn-privacy-accept").addEventListener("click", ()=>setPrivacyChoice("accepted"));
 document.getElementById("btn-privacy-decline").addEventListener("click", ()=>setPrivacyChoice("declined"));
 
 //================ Input ================
 let touchStart=null;
+function resetPointerInput(){ touchStart=null; }
 function cellFromXY(x,y){
   const c=Math.floor((x-bx)/cs), r=Math.floor((y-by)/cs);
   return (r>=0&&r<ROWS&&c>=0&&c<COLS)? [r,c] : null;
 }
 cv.addEventListener("pointerdown", e=>{
+  if(e.isPrimary===false || e.button!==0) return;
   audio();
   if(state!=="idle") return;
   const cell=cellFromXY(e.clientX,e.clientY);
@@ -4043,10 +4087,10 @@ cv.addEventListener("pointerdown", e=>{
     return;
   }
   selected=cell;
-  touchStart={x:e.clientX,y:e.clientY,cell};
+  touchStart={x:e.clientX,y:e.clientY,cell,pointerId:e.pointerId};
 });
 cv.addEventListener("pointermove", e=>{
-  if(!touchStart || state!=="idle") return;
+  if(!touchStart || e.pointerId!==touchStart.pointerId || state!=="idle") return;
   const dx=e.clientX-touchStart.x, dy=e.clientY-touchStart.y;
   if(Math.hypot(dx,dy) < cs*0.35) return;
   const [r,c]=touchStart.cell;
@@ -4056,7 +4100,13 @@ cv.addEventListener("pointermove", e=>{
   if(r2<0||r2>=ROWS||c2<0||c2>=COLS) return;
   trySwap(r,c,r2,c2);
 });
-cv.addEventListener("pointerup", ()=>{ touchStart=null; });
+for(const event of ["pointerup","pointercancel"]){
+  window.addEventListener(event, e=>{
+    if(touchStart?.pointerId===e.pointerId) resetPointerInput();
+  });
+}
+window.addEventListener("blur", resetPointerInput);
+window.addEventListener("resize", resetPointerInput);
 
 //================ Particles ================
 // クリア時のコイン弾け演出用（Canvas描画に使う画像）
@@ -4535,7 +4585,7 @@ let gameFrameRequest=0;
 let terminalAnimationUntil=0;
 
 function shouldRunGameLoop(now=performance.now()){
-  if(document.hidden) return false;
+  if(document.hidden || nativeAppInactive) return false;
   if(state==="title" || state==="paused" || state==="practiceDone") return false;
   if(state==="over" && now>=terminalAnimationUntil) return false;
   return true;
@@ -4566,13 +4616,20 @@ function frame(now){
     gameFrameRequest=requestAnimationFrame(frame);
     return;
   }
-  const dt = Math.min((now-lastTime)/1000, 0.05);
+  // Preserve elapsed time at low frame rates without large physics steps.
+  // Lifecycle resume resets lastTime; unexpected long stalls catch up at most 250ms.
+  const elapsed = Math.max(0, Math.min((now-lastTime)/1000, 0.25));
+  const steps = Math.max(1, Math.ceil(elapsed / 0.05));
+  const dt = elapsed / steps;
   // Preserve the deadline across small delays; skip missed frames without a burst.
   nextFrameAt=!nextFrameAt || now-nextFrameAt>=FRAME_INTERVAL_MS
     ? now+FRAME_INTERVAL_MS
     : nextFrameAt+FRAME_INTERVAL_MS;
   lastTime=now; perf=now/1000;
-  update(dt);
+  for(let step=0;step<steps;step++){
+    update(dt);
+    if(!shouldRunGameLoop(now)) break;
+  }
   render();
   if(shouldRunGameLoop(now)) gameFrameRequest=requestAnimationFrame(frame);
 }
@@ -4700,11 +4757,51 @@ function drawOhsunLight(glowX,glowY,reduceMotion){
   ctx.drawImage(ohsunLightLayer,0,0,W,H);
 }
 
+function drawOhsunAnnouncement(eventState, progress, reduceMotion){
+  const copy=OHSUN_EVENT_CONFIG.announcement;
+  const entering=eventState===OHSUN_EVENT_STATES.ENTERING;
+  const exiting=eventState===OHSUN_EVENT_STATES.EXITING || eventState===OHSUN_EVENT_STATES.COOLDOWN;
+  const text=entering ? copy.entry : exiting ? copy.exit : copy.active;
+  const detail=entering ? copy.entryDetail : exiting ? copy.exitDetail : copy.activeDetail;
+  const width=Math.min(354,cs*COLS-12), height=86;
+  const x=bx+(cs*COLS-width)/2;
+  const bounce=reduceMotion || !entering ? 0 : Math.sin(Math.PI*progress)*8;
+  const y=by+Math.min(24,cs*.5)-bounce;
+  ctx.save();
+  // A separate system banner on the board, never a speech bubble or image overlay.
+  ctx.shadowBlur=0;
+  ctx.fillStyle="#6a2b17";
+  rounded(x,y+5,width,height,18);ctx.fill();
+  ctx.fillStyle=exiting ? "#fff4ce" : "#fff7df";
+  rounded(x,y,width,height,18);ctx.fill();
+  ctx.strokeStyle="#ffb82e";ctx.lineWidth=3;ctx.stroke();
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.font=canvasFont(700,10);ctx.fillStyle="#995829";
+  ctx.fillText(copy.label,x+width/2,y+15);
+  ctx.font=canvasFont(900,Math.min(27,(width-26)/(text.length*.98)));
+  ctx.fillStyle="#b74519";
+  ctx.fillText(text,x+width/2,y+41);
+  ctx.font=canvasFont(700,Math.min(12,(width-24)/detail.length));ctx.fillStyle="#80502a";
+  ctx.fillText(detail,x+width/2,y+66);
+  // Small paper pieces belong to the event graphics, outside the official image.
+  if(!reduceMotion){
+    const colors=["#ffbd30","#ff709c","#67d7df","#fff6ba"];
+    for(let i=0;i<14;i++){
+      const phase=(ohsunAnimationTime*.5+i*.137)%1;
+      const px=bx+8+(i%2 ? cs*COLS-16 : 0)+Math.sin(i*2+phase*5)*5;
+      const py=by+phase*Math.min(cs*ROWS,240);
+      ctx.fillStyle=colors[i%colors.length];
+      ctx.fillRect(px,py,4+(i%3),7);
+    }
+  }
+  ctx.restore();
+}
+
 function drawOhsunOverlay(){
   if(!ohsunCharacterImg || !ohsunManager.isBusy()) return;
   const eventState = ohsunManager.state;
   const timing = OHSUN_EVENT_CONFIG.timing;
-  const reduceMotion = REDUCED_EFFECTS || (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const reduceMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const cooldownProgress = Math.min(1, ohsunManager.elapsed / timing.cooldownSeconds);
   const overlayAlpha = eventState===OHSUN_EVENT_STATES.COOLDOWN ? 1-cooldownProgress : 1;
 
@@ -4718,7 +4815,7 @@ function drawOhsunOverlay(){
   if(!heroLayout){ ctx.restore(); return; }
   const restingCharX=heroLayout.character.x+heroLayout.character.width/2;
   const restingCharY=heroLayout.character.y+heroLayout.character.height/2;
-  drawOhsunLight(restingCharX,restingCharY,reduceMotion);
+  drawOhsunLight(restingCharX,restingCharY,REDUCED_EFFECTS || reduceMotion);
 
   if(eventState===OHSUN_EVENT_STATES.ACTIVATING && ohsunTargetCells.size){
     let index=0;
@@ -4737,8 +4834,10 @@ function drawOhsunOverlay(){
     ctx.shadowBlur=0;
   }
 
-  const charW=heroLayout.character.width;
-  const charH=heroLayout.character.height;
+  const duration=eventState===OHSUN_EVENT_STATES.ENTERING ? timing.entrySeconds : timing.exitSeconds;
+  const progress=Math.min(1,ohsunManager.elapsed/duration);
+  const presentation=getOhsunPresentation(heroLayout,eventState,progress,reduceMotion);
+  drawOhsunAnnouncement(eventState,progress,reduceMotion);
   ctx.save();
   ctx.globalAlpha=1;
   ctx.shadowBlur=0;
@@ -4746,7 +4845,9 @@ function drawOhsunOverlay(){
   ctx.shadowOffsetY=0;
   ctx.filter="none";
   // 公式画像は無加工で、縦横比を保った全体表示のみ行う。
-  ctx.drawImage(ohsunCharacterImg,restingCharX-charW/2,restingCharY-charH/2,charW,charH);
+  if(eventState!==OHSUN_EVENT_STATES.COOLDOWN){
+    ctx.drawImage(ohsunCharacterImg,presentation.x,presentation.y,presentation.width,presentation.height);
+  }
   ctx.restore();
   ctx.restore();
 }
@@ -4890,6 +4991,20 @@ function render(){
 }
 
 ensureGameLoop();
+
+// Scores, missions, font loading and the collaboration gauge can change HUD height.
+// Reflow the board only when that height actually changes, including the safe-area inset.
+if(typeof ResizeObserver === "function"){
+  const hud = document.getElementById("hud");
+  const hudObserver = new ResizeObserver(()=>{
+    const bottom = hud.style.display!=="none" ? hud.getBoundingClientRect().bottom : 76;
+    if(Math.abs(bottom-layoutHudBottom)<1) return;
+    resetPointerInput();
+    resize();
+    if(state!=="title") render();
+  });
+  hudObserver.observe(hud);
+}
 
 // Debug: ?autostart skips the title, ?howto opens the guide, &horror forces horror mode.
 if(location.search.indexOf("autostart")>=0) document.getElementById("btn-new-game").click();

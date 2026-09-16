@@ -24,3 +24,26 @@ export function createOhsunAppearance(config, loadedCharacters, options = {}) {
     image: character.image
   };
 }
+
+// Only position and uniform size change. The complete official image stays in its region.
+export function getOhsunPresentation(layout, phase, progress, reduceMotion = false) {
+  const { character, region } = layout;
+  const t = Math.max(0, Math.min(1, progress));
+  if (reduceMotion || (phase !== "ENTERING" && phase !== "EXITING")) return { ...character };
+  const entering = phase === "ENTERING";
+  const eased = entering ? 1 - Math.pow(1 - t, 3) : t * t;
+  const scale = entering ? 0.55 + 0.45 * eased : 1 - 0.45 * eased;
+  const width = character.width * scale, height = character.height * scale;
+  const centerX = character.x + character.width / 2;
+  const centerY = character.y + character.height / 2;
+  const edgeX = entering ? region.x + 8 + width / 2 : region.x + region.width - 8 - width / 2;
+  const travel = entering ? 1 - eased : eased;
+  const hop = Math.sin(Math.PI * t) * Math.min(22, character.height * 0.12);
+  const x = centerX + (edgeX - centerX) * travel - width / 2;
+  const y = centerY - height / 2 - hop;
+  return {
+    x: Math.max(region.x + 8, Math.min(region.x + region.width - 8 - width, x)),
+    y: Math.max(region.y + 8, Math.min(region.y + region.height - 8 - height, y)),
+    width, height
+  };
+}

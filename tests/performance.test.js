@@ -13,7 +13,7 @@ function frameHarness() {
   const draws = [], deltas = [];
   let time = 0, requests = 0, cancellations = 0;
   const context = vm.createContext({
-    document: { hidden:false }, state:"idle", FRAME_INTERVAL_MS:1000/GAME_CONFIG.performance.activeFrameRate,
+    document: { hidden:false }, nativeAppInactive:false, state:"idle", FRAME_INTERVAL_MS:1000/GAME_CONFIG.performance.activeFrameRate,
     performance: { now:()=>time },
     requestAnimationFrame:()=>++requests, cancelAnimationFrame:()=>cancellations++,
     update:dt=>deltas.push(dt), render:()=>draws.push(time)
@@ -75,6 +75,41 @@ test("pause, background and resume retain one scheduled game loop", () => {
   h.context.ensureGameLoop(); h.tick(2010);
   assert.equal(h.draws.length,2);
   assert.ok(h.deltas.at(-1)<0.02);
+});
+
+test("native inactivity stops frames even when the web document remains visible", () => {
+  const h = frameHarness();
+  h.context.ensureGameLoop();
+  h.context.nativeAppInactive = true;
+  h.context.stopGameLoop();
+  const requests = h.requests;
+  h.context.ensureGameLoop();
+  h.tick(100);
+  assert.equal(h.requests, requests);
+  assert.equal(h.draws.length, 0);
+  h.context.nativeAppInactive = false;
+  h.context.ensureGameLoop();
+  h.tick(110);
+  assert.equal(h.draws.length, 1);
+});
+
+test("slow rendering advances elapsed game time using bounded simulation steps", () => {
+  const h = frameHarness();
+  h.tick(0);
+  for(let now=200;now<=2000;now+=200) h.tick(now);
+  assert.ok(h.deltas.every(dt=>dt<=0.05));
+  assert.ok(Math.abs(h.deltas.reduce((sum,dt)=>sum+dt,0)-2)<0.000001);
+  const before=h.deltas.length;
+  h.tick(30000);
+  assert.equal(h.deltas.length-before,5,"a long stall must not create an unbounded update burst");
+});
+
+test("catch-up stops immediately when an update ends the game", () => {
+  const h = frameHarness();
+  h.context.update=()=>{h.context.state="over";};
+  h.tick(200);
+  assert.equal(h.draws.length,1);
+  assert.equal(h.requests,0);
 });
 
 test("special pieces reuse painted surfaces during movement and clearing", () => {

@@ -44,7 +44,7 @@ All 31 effects are HTML audio elements, as in the reference implementation. No W
 2. Only those chain-rate effects use `preload="auto"`. The rest use `preload="none"` and load on first use, so iOS does not hold 31 prepared media pipelines.
 3. At most three effects overlap and one key retriggers at most every 100 ms.
 
-Effects are triggered from the game loop rather than from a tap, and iOS unlocks media elements one at a time inside a gesture, so the pooled elements are started muted once on the first gesture and immediately paused and rewound. BGM remains a single element and repeated requests reuse it without resetting its position.
+Effects are triggered from the game loop rather than from a tap. In browsers, pooled elements are started muted once on the first gesture, then paused and rewound. Completion restores the current sound setting, rather than a setting captured before the asynchronous play call. Native Capacitor skips this priming: its WKWebView configuration sets `mediaTypesRequiringUserActionForPlayback = []`, so starting 16 muted elements is unnecessary. BGM remains a single element and repeated requests reuse it without resetting its position. This reduces native startup contention; it does not establish the cause of silence in a particular TestFlight build. Device playback and screen recording still need verification.
 
 Visibility, page-hide and the official Capacitor App state event stop effects and suspend BGM. Foreground recovery restores only requested BGM; short effects are discarded. Explicit game pause, title return and game over cancel BGM intent. Native inactivity still blocks playback if a browser focus event arrives first. Failed autoplay is caught and BGM can retry on a later gesture.
 

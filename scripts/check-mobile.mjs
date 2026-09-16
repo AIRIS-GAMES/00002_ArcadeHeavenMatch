@@ -4,7 +4,7 @@ import { readFile, mkdir } from "node:fs/promises";
 import { resolve, extname, sep } from "node:path";
 import { chromium, webkit } from "@playwright/test";
 
-const root=process.cwd();
+const root=resolve(process.env.MOBILE_WEB_ROOT || process.cwd());
 const hooks=`
 const qaRender=render;
 const qaFrames=[];
@@ -36,6 +36,12 @@ window.mobileQA={
   ready:()=>ohsunCharacterImages.length===7 && charaImgs.every(imgReady),
   start(){document.getElementById("title").classList.add("hidden");document.getElementById("hud").style.display="";level=1;startLevel();},
   begin(){qaTrigger=true;},
+  presentation(phase,progress){
+    stopGameLoop();
+    ohsunManager.state=phase;
+    ohsunManager.elapsed=progress*(phase==="ENTERING" ? OHSUN_EVENT_CONFIG.timing.entrySeconds : OHSUN_EVENT_CONFIG.timing.exitSeconds);
+    render();
+  },
   clear(){score=1605;ohsunStageResult.record({piecesRemoved:14,scoreGained:300});stageClear();},
   howto(){document.getElementById("btn-howto-menu").click();},
   hud(value){score=value;target=120000;updateHUD();},
@@ -74,6 +80,7 @@ try{
     try{
       const sizes=process.env.AUDIO_GAMEPLAY_TEST || process.env.NATIVE_STARTUP_TEST ? [[390,664]] : process.env.CLEAR_SCREEN_TEST || process.env.HOWTO_SCREEN_TEST ? [[320,480],[375,560],[390,664],[390,844],[844,390],[1280,800]] : [[320,568],[390,664],[390,844],[844,390],[1280,800]];
       for(const [width,height] of sizes){
+        if(process.env.MOBILE_TEST_VIEWPORT && process.env.MOBILE_TEST_VIEWPORT!==`${width}x${height}`) continue;
         const page=await browser.newPage({viewport:{width,height},deviceScaleFactor:2,hasTouch:width<900});
         const errors=[];
         page.on("pageerror",error=>errors.push(error.message));
@@ -201,6 +208,15 @@ try{
         await page.waitForTimeout(500);
         try{await page.evaluate(()=>mobileQA.begin());}catch(error){errors.push(error.message);}
         await page.waitForFunction(()=>mobileQA.snapshot().draws>0,{},{timeout:5000}).catch(error=>errors.push(error.message));
+        if(process.env.OHSUN_PRESENTATION_TEST){
+          for(const phase of ["ENTERING","EXITING"]){
+            await page.evaluate(phase=>mobileQA.presentation(phase,.65),phase);
+            await page.screenshot({path:`.artifacts/mobile/${name}-${width}x${height}-${phase}.png`});
+          }
+          assert.deepEqual(errors,[]);
+          await page.close();
+          continue;
+        }
         const active=await page.evaluate(()=>mobileQA.snapshot());
         await page.screenshot({path:`.artifacts/mobile/${name}-${width}x${height}.png`});
         if(width===844){
@@ -227,6 +243,7 @@ try{
           assert.ok(character.x>=0 && character.y>=0 && character.x+character.width<=width && character.y+character.height<=height);
           assert.ok(character.width>=100 && character.height>=100,"mobile character must be visible at a useful size");
           assert.ok(!finished.busy,"event must finish");
+          assert.ok(finished.board.y>=finished.hud.bottom,"board must remain below HUD after its content changes");
           assert.ok(finished.frames>active.frames+10,"game loop must continue");
         }catch(error){console.error(error.message);failed=true;}
         await page.close();

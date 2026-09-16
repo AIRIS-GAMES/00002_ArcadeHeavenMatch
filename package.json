@@ -8,6 +8,7 @@
     "build": "node scripts/build.mjs",
     "test": "node --test tests/*.test.js",
     "test:mobile": "node scripts/check-mobile.mjs",
+    "test:regressions": "node scripts/check-regressions.mjs",
     "cap:sync": "npm run build && npx cap sync",
     "cap:open:android": "npm run cap:sync && npx cap open android",
     "cap:run:android": "npm run cap:sync && npx cap run android",

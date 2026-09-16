@@ -7,6 +7,7 @@ import {
   OhsunEventManager,
   calculateGaugeGain,
   createOhsunAppearance,
+  getOhsunPresentation,
   findMostCommonColorCells,
   isOhsunEventActive
 } from "../src/features/ohsun/index.js";
@@ -30,6 +31,25 @@ test("Sansan Time chooses an unchanged image without dialogue or immediate repet
   assert.equal(appearance.asset, loaded[1].asset);
   assert.equal(appearance.image, loaded[1].image);
   assert.deepEqual(Object.keys(appearance).sort(), ["asset", "image"]);
+});
+
+test("entry and exit preserve the complete image and aspect ratio inside the safe region", ()=>{
+  for(const region of [{x:10,y:8,width:300,height:172},{x:959,y:87,width:303,height:688}]){
+    const width=region.width-16, height=Math.min(region.height-16,width/1.1);
+    const character={x:region.x+(region.width-height*1.1)/2,y:region.y+8,width:height*1.1,height};
+    const layout={character,region};
+    for(const phase of ["ENTERING","EXITING"]){
+      for(let i=0;i<=100;i++){
+        const rect=getOhsunPresentation(layout,phase,i/100);
+        assert.ok(Math.abs(rect.width/rect.height-character.width/character.height)<1e-8);
+        assert.ok(rect.x>=region.x && rect.y>=region.y);
+        assert.ok(rect.x+rect.width<=region.x+region.width+1e-8);
+        assert.ok(rect.y+rect.height<=region.y+region.height+1e-8);
+      }
+      assert.deepEqual(getOhsunPresentation(layout,phase,.5,true),character);
+    }
+    assert.deepEqual(getOhsunPresentation(layout,"ENTERING",1),character);
+  }
 });
 
 test("3・4・5個以上のマッチ値と連鎖ボーナスを計算する", ()=>{

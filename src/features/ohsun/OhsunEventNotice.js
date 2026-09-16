@@ -135,12 +135,6 @@ export class OhsunEventNotice {
       steps.appendChild(item);
     }
 
-    const period = document.createElement("p");
-    period.className = "ohsun-event-dialog-period";
-    const periodText = formatOhsunEventPeriod(this.config);
-    period.textContent = periodText ? `${notice.periodLabel}：${periodText}` : "";
-    period.hidden = !periodText;
-
     const copyright = document.createElement("p");
     copyright.className = "ohsun-event-dialog-copyright";
     copyright.textContent = this.config.copyrightNotice ?? "";
@@ -152,7 +146,7 @@ export class OhsunEventNotice {
     accept.textContent = notice.closeButtonText;
     accept.addEventListener("click", () => this.close());
 
-    dialog.append(close, title, visual, lead, steps, period, copyright, accept);
+    dialog.append(close, title, visual, lead, steps, copyright, accept);
     backdrop.appendChild(dialog);
     backdrop.addEventListener("click", event => {
       if (event.target === backdrop) this.close();

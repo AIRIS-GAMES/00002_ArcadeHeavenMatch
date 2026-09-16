@@ -23,6 +23,15 @@ export const OHSUN_EVENT_CONFIG = Object.freeze({
   // 公式画像は改変せず、キャラクターのセリフは設定しない。
   screenShakeEnabled: true,
   eventVersion: "review-1",
+  announcement: Object.freeze({
+    label: "コラボイベント",
+    entry: "おっ！サン登場！",
+    active: "おっ！サン サポート中！",
+    exit: "おっ！サン退場！",
+    entryDetail: "太陽ゲージ MAX！",
+    activeDetail: "いちばん多い色をまとめて消去！",
+    exitDetail: "サポート完了！"
+  }),
   notice: Object.freeze({
     bannerText: "おっ！サンとコラボ中！",
     bannerHint: "詳しく見る",
@@ -47,10 +56,10 @@ export const OHSUN_EVENT_CONFIG = Object.freeze({
     })
   }),
   timing: Object.freeze({
-    entrySeconds: 0.72,
+    entrySeconds: 1.05,
     effectDelaySeconds: 0.48,
-    exitSeconds: 0.62,
-    cooldownSeconds: 0.12
+    exitSeconds: 0.9,
+    cooldownSeconds: 0.18
   })
 });
 
