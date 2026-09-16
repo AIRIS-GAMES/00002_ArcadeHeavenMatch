@@ -40,7 +40,11 @@ function setup(saved = "0", extra = {}) {
     addEventListener: (name, fn) => { events[name] = fn; },
     Capacitor: {
       isNativePlatform: () => true,
-      registerPlugin: () => ({ addListener: (name, fn) => { nativeEvents[name] = fn; return Promise.resolve(); } })
+      // The injected iOS bridge has no registerPlugin; listeners return a handle.
+      Plugins: { App: { addListener: (name, fn) => {
+        nativeEvents[name] = fn;
+        return { remove: async () => {} };
+      } } }
     }
   };
   const context = vm.createContext({
@@ -64,6 +68,23 @@ test("no Web Audio survives anywhere in the sound code", () => {
   assert.doesNotMatch(sound, /AudioContext|webkitAudioContext/);
   assert.doesNotMatch(sound, /createBufferSource|createOscillator|createGain|Convolver|BiquadFilter/);
   assert.match(sound, /new Audio\(/);
+});
+
+test("startup tolerates an absent or failing native lifecycle plugin", async () => {
+  for (const app of [undefined, {},
+    { addListener() { throw new Error("unavailable"); } },
+    { addListener() { return Promise.reject(new Error("unavailable")); } }
+  ]) {
+    const h = setup("0", {
+      window: { addEventListener() {}, Capacitor: {
+        isNativePlatform: () => true, Plugins: { App: app }
+      } },
+      console: { warn() {} }
+    });
+    await h.unlock();
+    h.run("playBgm()");
+    assert.equal(h.bgm.paused, false);
+  }
 });
 
 test("every effect is a media element and every WAV records loud enough without clipping", () => {

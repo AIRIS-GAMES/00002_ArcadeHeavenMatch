@@ -2118,13 +2118,21 @@ window.addEventListener("pagehide", suspendAudio);
   });
 });
 const capacitor = window.Capacitor;
-if(capacitor?.isNativePlatform()){
-  const app = capacitor.registerPlugin("App");
-  app.addListener("appStateChange", ({isActive})=>{
-    nativeAudioInactive = !isActive;
-    if(isActive) restoreAudio();
-    else suspendAudio();
-  }).catch(()=>{});
+if(capacitor?.isNativePlatform?.()){
+  // This unbundled page uses the injected native bridge, not @capacitor/core.
+  // Its App listener returns a handle synchronously (not necessarily a Promise).
+  try{
+    const app = capacitor.Plugins?.App;
+    if(app?.addListener){
+      Promise.resolve(app.addListener("appStateChange", ({isActive})=>{
+        nativeAudioInactive = !isActive;
+        if(isActive) restoreAudio();
+        else suspendAudio();
+      })).catch(error=>console.warn("[audio] Native lifecycle listener unavailable.", error));
+    }
+  }catch(error){
+    console.warn("[audio] Native lifecycle listener unavailable.", error);
+  }
 }
 
 //================ Game State ================

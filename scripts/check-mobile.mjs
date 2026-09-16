@@ -72,7 +72,7 @@ try{
     if(process.env.MOBILE_TEST_BROWSER && process.env.MOBILE_TEST_BROWSER!==name) continue;
     const browser=await engine.launch();
     try{
-      const sizes=process.env.AUDIO_GAMEPLAY_TEST ? [[390,664]] : process.env.CLEAR_SCREEN_TEST || process.env.HOWTO_SCREEN_TEST ? [[320,480],[375,560],[390,664],[390,844],[844,390],[1280,800]] : [[320,568],[390,664],[390,844],[844,390],[1280,800]];
+      const sizes=process.env.AUDIO_GAMEPLAY_TEST || process.env.NATIVE_STARTUP_TEST ? [[390,664]] : process.env.CLEAR_SCREEN_TEST || process.env.HOWTO_SCREEN_TEST ? [[320,480],[375,560],[390,664],[390,844],[844,390],[1280,800]] : [[320,568],[390,664],[390,844],[844,390],[1280,800]];
       for(const [width,height] of sizes){
         const page=await browser.newPage({viewport:{width,height},deviceScaleFactor:2,hasTouch:width<900});
         const errors=[];
@@ -85,7 +85,19 @@ try{
           localStorage.setItem("ohanapon-muted","1");
           localStorage.setItem("airis-privacy-choice","declined");
         });
+        if(process.env.NATIVE_STARTUP_TEST){
+          // Match the injected bridge: no core registerPlugin, synchronous handle.
+          await page.addInitScript(()=>{
+            window.Capacitor={isNativePlatform:()=>true,Plugins:{App:{
+              addListener:()=>({remove:async()=>{}})
+            }}};
+          });
+        }
         await page.goto(origin);
+        if(process.env.NATIVE_STARTUP_TEST){
+          await page.waitForFunction(()=>document.getElementById("title").classList.contains("show-menu"));
+          assert.deepEqual(errors,[],"native startup must reach the menu without exceptions");
+        }
         await page.waitForFunction(()=>window.mobileQA?.ready());
         await page.evaluate(()=>mobileQA.start());
         if(process.env.GAMEPLAY_TEST || process.env.AUDIO_GAMEPLAY_TEST){
