@@ -106,6 +106,28 @@ try{
           assert.deepEqual(errors,[],"native startup must reach the menu without exceptions");
         }
         await page.waitForFunction(()=>window.mobileQA?.ready());
+        if(process.env.AUDIO_SETTINGS_TEST){
+          await page.waitForFunction(()=>document.getElementById("title").classList.contains("show-menu"));
+          await page.locator("#btn-settings").click();
+          await page.locator("#btn-settings-mute").click();
+          for(const kind of ["bgm","sfx"]){
+            await page.locator(`#btn-test-${kind}`).click();
+            await page.waitForFunction(()=>document.getElementById("audio-check-report").value!=="");
+            const result=await page.locator("#audio-check-report").inputValue();
+            const report=JSON.parse(result);
+            assert.equal(report.error,null,result);
+            assert.equal(report.progressed,true,result);
+            assert.equal(report.label,kind==="bgm"?"BGM":"bell");
+          }
+          await page.locator("#settings summary").click();
+          await page.screenshot({path:`.artifacts/mobile/${name}-audio-settings-${width}x${height}.png`});
+          await page.locator("#btn-test-bgm").click();
+          await page.locator("#btn-settings-close").click();
+          assert.equal(await page.evaluate(()=>document.getElementById("bgm").paused),true);
+          assert.deepEqual(errors,[]);
+          console.log(JSON.stringify({name,width,height,audioSettings:"passed"}));
+          await page.close();continue;
+        }
         await page.evaluate(()=>mobileQA.start());
         if(process.env.GAMEPLAY_TEST || process.env.AUDIO_GAMEPLAY_TEST){
           if(process.env.AUDIO_GAMEPLAY_TEST)await page.waitForFunction(()=>mobileQA.audioReady());

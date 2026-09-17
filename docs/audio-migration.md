@@ -1,5 +1,15 @@
 # HTML media audio migration
 
+## TestFlight silence follow-up (2026-09-17)
+
+Reported on iPhone 17 / iOS 26.x, TestFlight version 1.09 (build 20): both music and effects are silent even with silent mode disabled. The exact OS version is still unknown. Local bundle files match the source audio; this does not establish which files are in the distributed archive. The earlier silent-switch explanation does not account for this report.
+
+Playback errors are now retained instead of silently discarded. A later playback attempt reloads an element with a media error before calling `play()`; healthy elements retain the existing pool behavior. This repairs a recovery gap, but is not yet a confirmed fix for the device report.
+
+Settings now provides separate BGM (3 seconds) and effect checks using the existing media elements. Expand the result to copy the error, playback progress, media readiness, source, lifecycle flags, user agent, and native app version/build when available. Advancing playback time does **not** prove audible speaker output. Closing settings, muting, or backgrounding stops the check. Saved sound preferences are respected.
+
+Run `AUDIO_SETTINGS_TEST=1 MOBILE_TEST_VIEWPORT=390x844 MOBILE_WEB_ROOT=ios/App/App/public npm run test:mobile` to verify the checks in Chromium and WebKit (set environment variables separately in PowerShell). Generate native files with `npm run cap:sync`, then archive and distribute a new build from Xcode. The current Windows environment cannot compile or distribute an iOS archive. On the affected device, run both checks with sound ON and retain each result. Initial launch and foreground recovery, plus screen recording, remain device verification steps. No native audio-session override was introduced.
+
 ## Comparison and pre-change inventory
 
 The initial working tree was clean. Reference: `C:/MyWork/startup/00010_CosmiiCannon/www/index.html` (read only).

@@ -1331,6 +1331,8 @@
     line-height:1.15;
   }
   .menu-actions { display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; }
+  #settings .menu-actions button { width:100%; min-height:44px; padding:12px; font-size:18px; }
+  #settings details { width:100%; }
   button {
     font-family:inherit; font-size:20px; font-weight:bold; color:#fff;
     background:linear-gradient(180deg,#ffb1d8,#ff8fc0);
@@ -1700,8 +1702,15 @@
       <h2>設定</h2>
       <div class="menu-actions">
         <button id="btn-settings-mute" type="button">サウンド：ON</button>
+        <button id="btn-test-bgm" class="secondary-btn" type="button">BGMを確認（3秒）</button>
+        <button id="btn-test-sfx" class="secondary-btn" type="button">効果音を確認</button>
         <button id="btn-settings-close" class="secondary-btn" type="button">もどる</button>
       </div>
+      <p id="audio-check-status" role="status" style="font-size:13px">音の確認はサウンドをONにして行ってください。</p>
+      <details style="text-align:left;font-size:12px">
+        <summary>音声の確認結果</summary>
+        <textarea id="audio-check-report" readonly aria-label="音声の確認結果" rows="7" style="box-sizing:border-box;width:100%;margin-top:8px;font-size:12px"></textarea>
+      </details>
     </div>
   </div>
 
@@ -1934,6 +1943,26 @@ const sfxSources = new Map();
 const sfxVolumes = new Map();
 const sfxLastStarted = new Map();
 const activeSfx = new Set();
+const audioResults = new Map();
+let audioAppInfo = null;
+let audioCheck = null;
+function watchAudio(element, label){
+  const result = { label, playing:false, advanced:false, error:null };
+  audioResults.set(element, result);
+  element.addEventListener("playing", ()=>{ result.playing=true; result.error=null; });
+  element.addEventListener("timeupdate", ()=>{ if(element.currentTime>0) result.advanced=true; });
+  element.addEventListener("error", ()=>{
+    activeSfx.delete(element);
+    recordAudioError(element, element.error);
+  });
+}
+function recordAudioError(element, error){
+  if(error?.name==="AbortError") return;
+  const result=audioResults.get(element);
+  if(result) result.error={ name:error?.name || "MediaError", code:error?.code || 0,
+    message:error?.message || "音声を再生できませんでした" };
+}
+if(bgm) watchAudio(bgm, "BGM");
 
 function sfxFamily(key){
   const dash = key.lastIndexOf("-");
@@ -1954,7 +1983,7 @@ for(const [name, count] of Object.entries(SFX_COUNTS)){
         activeSfx.delete(element);
         rewind(element);
       });
-      element.addEventListener("error", ()=>activeSfx.delete(element));
+      watchAudio(element, key);
       pool.push(element);
     }
     sfx.set(key, pool);
@@ -1990,6 +2019,7 @@ function hideVolumePanel(){
   // 音量パネルは廃止。既存の呼び出しだけ安全に受ける。
 }
 function toggleMute(){
+  cancelAudioCheck();
   muted = !muted;
   gameStorage.setItem("ohanapon-muted", muted ? "1" : "0");
   applyMuted();
@@ -2034,13 +2064,15 @@ function unlockAudio(){
 }
 function tryPlay(element){
   try{
+    // An element with a media error needs load() before an explicit retry.
+    if(element.error) element.load();
     const promise = element.play();
-    if(promise && typeof promise.catch==="function") promise.catch(()=>{});
-  }catch(e){}
+    if(promise && typeof promise.catch==="function") promise.catch(error=>recordAudioError(element,error));
+  }catch(error){ recordAudioError(element,error); }
 }
 function resumeBgm(){
   if(!bgm || !bgmWanted || muted || !audioUnlocked || audioSuspended ||
-    nativeAppInactive || document.hidden || !bgm.paused) return;
+    nativeAppInactive || document.hidden || (!bgm.paused && !bgm.error)) return;
   setBgmElementVolume();
   tryPlay(bgm);
 }
@@ -2076,14 +2108,17 @@ function playSfx(key){
   activeSfx.add(element);
   element.muted = muted;
   try{
+    if(element.error) element.load();
     const result=element.play();
-    if(result && typeof result.catch==="function") result.catch(()=>{
+    if(result && typeof result.catch==="function") result.catch(error=>{
       if(sfxLastStarted.get(key)!==now) return;
+      recordAudioError(element,error);
       activeSfx.delete(element);
       sfxLastStarted.delete(key);
     });
   }catch(e){
     activeSfx.delete(element);
+    recordAudioError(element,e);
     sfxLastStarted.delete(key);
   }
 }
@@ -2097,7 +2132,57 @@ function sndColorClear(){ playSfx("color"); }
 function sndClearStage(){ playSfx("stage"); }
 function sndLose(){ playSfx("lose"); }
 function sndHorror(){ playSfx("horror"); }
+function cancelAudioCheck(){
+  if(!audioCheck) return;
+  clearTimeout(audioCheck.timer);
+  const {element}=audioCheck;
+  audioCheck=null;
+  element.pause();
+  rewind(element);
+  activeSfx.delete(element);
+}
+function startAudioCheck(kind){
+  cancelAudioCheck();
+  const status=document.getElementById("audio-check-status");
+  const report=document.getElementById("audio-check-report");
+  if(muted){
+    if(status) status.textContent="サウンドをONにしてから確認してください。";
+    return;
+  }
+  if(document.hidden || nativeAppInactive) return;
+  // Settings opens from the title; the check must not set gameplay BGM intent.
+  restoreAudio();
+  unlockAudio();
+  const element=kind==="bgm" ? bgm : sfx.get("bell")[0];
+  if(!element) return;
+  const result=audioResults.get(element);
+  Object.assign(result,{playing:false,advanced:false,error:null});
+  if(report) report.value="";
+  if(status) status.textContent=(kind==="bgm" ? "BGM" : "効果音")+"を確認中…";
+  const check={element,timer:null};
+  audioCheck=check;
+  tryPlay(element);
+  check.timer=setTimeout(()=>{
+    if(audioCheck!==check) return;
+    const progressed=result.advanced || element.currentTime>0;
+    if(status) status.textContent=result.error ? "再生に失敗しました。下の確認結果をお知らせください。" :
+      progressed ? "再生時間の進行を確認しました。聞こえない場合は確認結果をお知らせください。" :
+      "再生時間が進んでいません。下の確認結果をお知らせください。";
+    if(report) report.value=JSON.stringify({
+      check:"audio-check-v1", ...result, progressed,
+      currentTime:element.currentTime, paused:element.paused,
+      readyState:element.readyState, networkState:element.networkState,
+      mediaError:element.error?.code || 0, muted:element.muted, volume:element.volume,
+      audioUnlocked, audioSuspended, nativeAppInactive, hidden:document.hidden,
+      source:element.currentSrc || element.src,
+      app:audioAppInfo,
+      userAgent:window.navigator?.userAgent || ""
+    },null,2);
+    cancelAudioCheck();
+  },3000);
+}
 function suspendAudio(){
+  cancelAudioCheck();
   audioSuspended = true;
   if(bgm) bgm.pause();
   stopSfx();
@@ -2135,6 +2220,12 @@ if(capacitor?.isNativePlatform?.()){
   // Its App listener returns a handle synchronously (not necessarily a Promise).
   try{
     const app = capacitor.Plugins?.App;
+    if(app?.getInfo){
+      // Metadata is optional; its failure must never prevent lifecycle registration.
+      Promise.resolve().then(()=>app.getInfo()).then(info=>{
+        audioAppInfo={version:info.version,build:info.build};
+      }).catch(()=>{});
+    }
     if(app?.addListener){
       Promise.resolve(app.addListener("appStateChange", ({isActive})=>{
         nativeAppInactive = !isActive;
@@ -3773,7 +3864,10 @@ document.getElementById("btn-settings").addEventListener("click", ()=>{
   document.getElementById("settings").classList.remove("hidden");
 });
 document.getElementById("btn-settings-mute").addEventListener("click", ()=>{ audio(); toggleMute(); });
+document.getElementById("btn-test-bgm").addEventListener("click", ()=>startAudioCheck("bgm"));
+document.getElementById("btn-test-sfx").addEventListener("click", ()=>startAudioCheck("sfx"));
 document.getElementById("btn-settings-close").addEventListener("click", ()=>{
+  cancelAudioCheck();
   audio();
   document.getElementById("settings").classList.add("hidden");
 });

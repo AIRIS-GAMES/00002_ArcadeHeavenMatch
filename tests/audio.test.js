@@ -27,13 +27,16 @@ function setup(saved = "0", extra = {}) {
     }
     finish() { this.paused = true; this.ended = true; if (this.events.ended) this.events.ended(); }
     addEventListener(name, fn) { this.events[name] = fn; }
-    load() { this.calls.push("load"); }
+    load() { this.calls.push("load"); this.error = null; this.paused = true; this._t = 0; }
   }
   const bgm = new Audio("bgm");
   const events = {}, nativeEvents = {}, storage = new Map([["ohanapon-muted", saved]]);
+  const timers = new Map();
+  let timerId = 0;
+  const ui = { "audio-check-status": { textContent:"" }, "audio-check-report": { value:"" } };
   const document = {
     hidden: false,
-    getElementById: id => (id === "bgm" ? bgm : null),
+    getElementById: id => (id === "bgm" ? bgm : ui[id] || null),
     addEventListener: (name, fn) => { events[name] = fn; }
   };
   const window = {
@@ -49,6 +52,8 @@ function setup(saved = "0", extra = {}) {
   };
   const context = vm.createContext({
     Audio, document, window, performance: { now: () => time }, Promise,
+    setTimeout(fn) { timers.set(++timerId, fn); return timerId; },
+    clearTimeout(id) { timers.delete(id); },
     gameStorage: { getItem: k => storage.get(k), setItem: (k, v) => storage.set(k, v) },
     stopGameLoop() { }, resetFrameClock() { }, ensureGameLoop() { }, resetPointerInput() { }, ...extra
   });
@@ -56,7 +61,8 @@ function setup(saved = "0", extra = {}) {
   const run = code => vm.runInContext(code, context);
   const settled = () => new Promise(r => setImmediate(r));
   return {
-    elements, bgm, events, nativeEvents, storage, document, run, settled,
+    elements, bgm, events, nativeEvents, storage, document, run, settled, ui,
+    finishTimers() { for(const [id, fn] of [...timers]) { timers.delete(id); fn(); } },
     advance(ms) { time += ms; },
     effects: () => elements.slice(1),
     pool: key => run(`sfx.get(${JSON.stringify(key)})`),
@@ -297,6 +303,73 @@ test("autoplay rejection releases the voice and a later gesture can retry", asyn
   h.bgm.paused = true; h.bgm.reject = false;
   h.run("unlockAudio()");
   assert.equal(h.bgm.paused, false);
+});
+
+test("a later playback attempt reloads failed media, without reloading healthy voices", async () => {
+  const h = setup();
+  await h.unlock();
+  h.bgm.error = { code: 2, message: "network" };
+  h.bgm.paused = false; // A failed pipeline must not be mistaken for active playback.
+  h.run("playBgm()");
+  assert.deepEqual(h.bgm.calls, ["load", "play"]);
+  const bell = h.pool("bell")[0];
+  bell.error = { code: 3, message: "decode" };
+  h.run("sndBell()");
+  assert.deepEqual(bell.calls, ["load", "play"]);
+  bell.finish(); h.advance(120);
+  h.run("sndBell()");
+  assert.equal(bell.calls.filter(c => c === "load").length, 1);
+});
+
+test("sound checks report errors and playback progress, then stop without BGM intent", async () => {
+  const h = setup();
+  h.bgm.reject = true;
+  h.run('startAudioCheck("bgm")');
+  await h.settled(); h.finishTimers();
+  const failure = JSON.parse(h.ui["audio-check-report"].value);
+  assert.equal(failure.error.message, "blocked");
+  assert.equal(h.bgm.paused, true);
+  h.bgm.reject = false;
+  h.run('startAudioCheck("bgm")');
+  h.bgm.events.playing(); h.bgm.currentTime = 2; h.bgm.events.timeupdate();
+  await h.settled(); h.finishTimers();
+  const success = JSON.parse(h.ui["audio-check-report"].value);
+  assert.equal(success.error, null);
+  assert.equal(success.progressed, true);
+  assert.equal(h.bgm.paused, true);
+  h.run("restoreAudio()");
+  assert.equal(h.bgm.paused, true, "checking must not request gameplay music");
+  h.run('startAudioCheck("sfx")');
+  const bell = h.pool("bell")[0];
+  bell.events.timeupdate(); bell.finish(); h.finishTimers();
+  assert.equal(JSON.parse(h.ui["audio-check-report"].value).progressed, true,
+    "a short effect remains observable after its ended handler rewinds it");
+});
+
+test("checks respect mute and cancel when closing, backgrounding or switching sounds", () => {
+  const muted = setup("1");
+  muted.run('startAudioCheck("bgm")');
+  assert.equal(muted.bgm.calls.length, 0);
+  assert.equal(muted.storage.get("ohanapon-muted"), "1");
+  for (const stop of ['cancelAudioCheck()', 'suspendAudio()', 'toggleMute()', 'startAudioCheck("sfx")']) {
+    const h = setup();
+    h.run('startAudioCheck("bgm")');
+    h.run(stop);
+    assert.equal(h.bgm.paused, true, stop);
+    h.finishTimers();
+    assert.equal(h.bgm.paused, true, "a cancelled check must never restart");
+  }
+});
+
+test("media failures remain inspectable while intentional playback cancellation is ignored", async () => {
+  const h = setup();
+  await h.unlock();
+  const bell = h.pool("bell")[0];
+  bell.error = {code: 4, message: "unsupported"};
+  bell.events.error();
+  assert.equal(h.run('audioResults.get(sfx.get("bell")[0]).error.code'), 4);
+  h.run('recordAudioError(bgm, {name:"AbortError"})');
+  assert.equal(h.run('audioResults.get(bgm).error'), null);
 });
 
 test("iOS leaves the audio session to WKWebView so screen recording stays clean", () => {
