@@ -16,14 +16,43 @@ test("ranking retries after an offline authentication attempt and shares in-flig
     return { data: { session } };
   } } };
   const context = vm.createContext({ supabaseAuthPromise: null, supabaseUserId: null,
+    rankingConnectionError: "",
     getSupabaseClient: () => client, console: { error() {} } });
+  vm.runInContext(extract("function setRankingConnectionError(", "function getSupabaseClient("), context);
   vm.runInContext(extract("function ensureSupabaseAuth(){", "function setRankingStatus("), context);
   const first = context.ensureSupabaseAuth();
   assert.equal(first, context.ensureSupabaseAuth());
   assert.equal(await first, null);
+  assert.match(context.rankingConnectionError, /保存済みログインの確認.*通信/);
   assert.equal(await context.ensureSupabaseAuth(), session);
+  assert.equal(context.rankingConnectionError, "");
   assert.equal(calls, 2);
   assert.equal(context.supabaseUserId, "player");
+});
+
+test("ranking exposes the failing auth step and safe error code without exposing credentials", async () => {
+  const context = vm.createContext({ supabaseClient: null, supabaseAuthPromise: null,
+    supabaseUserId: null, rankingConnectionError: "", rankingLoadGeneration: 0,
+    isSupabaseConfigured: () => true, SUPABASE_CONFIG: { url: "https://example.com", publishableKey: "test" },
+    window: { supabase: { createClient: () => ({ auth: {
+      getSession: async () => ({ data: { session: null } }),
+      signInAnonymously: async () => ({ error: { code: "over_request_rate_limit", status: 429,
+        message: "sensitive-token-must-not-appear" } })
+    } }) } }, console: { error() {}, warn() {} },
+    setRankingStatus: text => { context.statusText = text; }, renderRankingRows() {} });
+  vm.runInContext(extract("function setRankingConnectionError(", "function setRankingStatus("), context);
+  vm.runInContext(extract("async function loadRanking(){", "async function submitLeaderboardScore("), context);
+  await context.loadRanking();
+  assert.match(context.statusText, /匿名ログイン.*over_request_rate_limit.*HTTP 429/);
+  assert.doesNotMatch(context.statusText, /sensitive-token/);
+  context.isSupabaseConfigured = () => false;
+  context.supabaseClient = null;
+  await context.loadRanking();
+  assert.match(context.statusText, /アプリの接続設定がありません/);
+  context.isSupabaseConfigured = () => true;
+  context.window.supabase = null;
+  await context.loadRanking();
+  assert.match(context.statusText, /通信ライブラリを読み込めません/);
 });
 
 test("score submission captures the completed run before awaiting authentication", async () => {

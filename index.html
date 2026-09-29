@@ -2321,6 +2321,7 @@ let playerName = normalizePlayerNameDisplay(gameStorage.getItem(PLAYER_NAME_KEY)
 let supabaseClient = null;
 let supabaseAuthPromise = null;
 let supabaseUserId = null;
+let rankingConnectionError = "";
 let rankingLoadGeneration = 0;
 
 function isSupabaseConfigured(){
@@ -2384,13 +2385,27 @@ function saveBestScore(){
   }
   return total;
 }
+function setRankingConnectionError(stage, error){
+  // Display only diagnostic identifiers, never raw responses or session tokens.
+  const code = typeof error?.code === "string" && /^[a-z0-9_]{1,80}$/i.test(error.code)
+    ? error.code : "";
+  const status = Number.isInteger(error?.status) && error.status >= 100 && error.status <= 599
+    ? "HTTP " + error.status : "";
+  const network = error?.name === "AuthRetryableFetchError" ||
+    /failed to fetch|load failed|network|offline/i.test(String(error?.message || ""));
+  const detail = [code, status].filter(Boolean).join(" / ") ||
+    (network ? "通信を確認してください" : "認証を完了できませんでした");
+  rankingConnectionError = stage + "：" + detail;
+}
 function getSupabaseClient(){
   if(supabaseClient) return supabaseClient;
   if(!isSupabaseConfigured()){
+    rankingConnectionError = "アプリの接続設定がありません";
     console.warn("[ranking] Supabase is not configured.");
     return null;
   }
   if(!window.supabase || typeof window.supabase.createClient !== "function"){
+    rankingConnectionError = "通信ライブラリを読み込めません";
     console.warn("[ranking] Supabase JS is not loaded.");
     return null;
   }
@@ -2407,6 +2422,7 @@ function getSupabaseClient(){
       }
     );
   }catch(e){
+    setRankingConnectionError("接続初期化", e);
     console.error("[ranking] Failed to create Supabase client.", e);
     supabaseClient = null;
   }
@@ -2414,22 +2430,30 @@ function getSupabaseClient(){
 }
 function ensureSupabaseAuth(){
   if(supabaseAuthPromise) return supabaseAuthPromise;
+  rankingConnectionError = "";
   supabaseAuthPromise = (async()=>{
     const client = getSupabaseClient();
     if(!client) return null;
+    let authStage = "保存済みログインの確認";
     try{
       const sessionResult = await client.auth.getSession();
       if(sessionResult.error) throw sessionResult.error;
       let session = sessionResult.data && sessionResult.data.session;
       if(!session){
+        authStage = "匿名ログイン";
         const signInResult = await client.auth.signInAnonymously();
         if(signInResult.error) throw signInResult.error;
         session = signInResult.data && signInResult.data.session;
       }
       supabaseUserId = session && session.user ? session.user.id : null;
+      if(!supabaseUserId){
+        rankingConnectionError = authStage + "：ログイン情報を取得できません";
+        return null;
+      }
       return session;
     }catch(e){
       supabaseUserId = null;
+      setRankingConnectionError(authStage, e);
       console.error("[ranking] Supabase anonymous auth failed.", e);
       return null;
     }
@@ -2480,7 +2504,8 @@ async function loadRanking(){
   if(generation!==rankingLoadGeneration) return;
   const client = getSupabaseClient();
   if(!session || !client){
-    setRankingStatus("ランキングに接続できません");
+    setRankingStatus("ランキングに接続できません" +
+      (rankingConnectionError ? "（" + rankingConnectionError + "）" : ""));
     renderRankingRows([]);
     return;
   }
