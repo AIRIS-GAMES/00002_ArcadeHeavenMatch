@@ -59,7 +59,6 @@
     padding:10px 8px 6px; z-index:5; pointer-events:none;
     transition:opacity .18s ease;
   }
-  #hud.ohsun-cinematic { opacity:0; pointer-events:none; transition:none; }
   .stat {
     background:rgba(255,255,255,.75); border:3px solid #fff;
     border-radius:18px; padding:4px 8px; text-align:center; min-width:62px;
@@ -105,7 +104,7 @@
     border:2px solid #fff;
     box-shadow:0 2px 4px rgba(0,0,0,.25);
   }
-  #ohsun-gauge {
+  #cosmii-power-gauge {
     position:relative;
     flex:0 0 min(360px,calc(100vw - 16px));
     height:34px;
@@ -116,30 +115,31 @@
     box-shadow:0 3px 9px rgba(207,137,20,.24);
     pointer-events:none;
   }
-  .ohsun-gauge-icon {
+  #cosmii-power-gauge[hidden] { display:none; }
+  .cosmii-power-gauge-icon {
     width:24px; height:24px; line-height:24px; text-align:center;
     color:#ff9f0a; font-size:22px;
     text-shadow:0 1px 5px rgba(255,178,25,.4);
   }
-  .ohsun-gauge-track {
+  .cosmii-power-gauge-track {
     position:relative; flex:1; height:13px; overflow:hidden;
     border-radius:999px; background:#fff0c4;
     box-shadow:inset 0 1px 3px rgba(150,90,0,.2);
   }
-  .ohsun-gauge-fill {
+  .cosmii-power-gauge-fill {
     display:block; width:0; height:100%; border-radius:inherit;
     background:linear-gradient(90deg,#ffd94d,#ff9500);
     transition:width .35s cubic-bezier(.2,.8,.25,1);
   }
-  .ohsun-gauge-value { min-width:34px; color:#9a5a00; font-size:11px; font-weight:700; text-align:right; }
-  .ohsun-gauge-ready {
+  .cosmii-power-gauge-value { min-width:34px; color:#9a5a00; font-size:11px; font-weight:700; text-align:right; }
+  .cosmii-power-gauge-ready {
     position:absolute; left:50%; top:calc(100% + 3px); transform:translateX(-50%);
     color:#e17400; font-size:13px; font-weight:800; white-space:nowrap;
     text-shadow:0 2px 0 #fff, 0 -2px 0 #fff, 2px 0 0 #fff, -2px 0 0 #fff;
   }
-  #ohsun-gauge.is-glowing { box-shadow:0 0 15px rgba(255,174,0,.58),0 3px 9px rgba(207,137,20,.24); }
-  #ohsun-gauge.is-full { animation:ohsunGaugePop .42s ease-out 1; }
-  @keyframes ohsunGaugePop { 0%,100%{transform:scale(1)} 45%{transform:scale(1.075)} }
+  #cosmii-power-gauge.is-glowing { box-shadow:0 0 15px rgba(255,174,0,.58),0 3px 9px rgba(207,137,20,.24); }
+  #cosmii-power-gauge.is-full { animation:cosmiiPowerGaugePop .42s ease-out 1; }
+  @keyframes cosmiiPowerGaugePop { 0%,100%{transform:scale(1)} 45%{transform:scale(1.075)} }
   #hud-objective {
     flex:0 0 min(360px,calc(100vw - 16px));
     min-height:28px;
@@ -167,7 +167,7 @@
         "stage score time life mute"
         ". . . shop pause"
         "objective objective objective objective objective"
-        "sun sun sun sun sun";
+        "power power power power power";
       justify-content:center; align-items:start;
       padding:7px 4px 4px; gap:4px;
     }
@@ -190,11 +190,11 @@
     #btn-shop-ingame { grid-area:shop; justify-self:end; }
     #btn-pause { grid-area:pause; }
     #hud-objective { grid-area:objective; width:min(100%,350px); min-height:24px; justify-self:center; font-size:11px; }
-    #ohsun-gauge {
-      grid-area:sun; width:min(100%,350px); height:30px; justify-self:center;
+    #cosmii-power-gauge {
+      grid-area:power; width:min(100%,350px); height:30px; justify-self:center;
       padding-top:3px; padding-bottom:3px; border-width:2px;
     }
-    .ohsun-gauge-ready { font-size:11px; }
+    .cosmii-power-gauge-ready { font-size:11px; }
   }
   @media (max-width:340px) {
     #hud {
@@ -207,11 +207,11 @@
     #hud-score { font-size:11px; }
     .stat:nth-child(4) .val { font-size:12px; }
     .hud-btn { width:34px; height:34px; min-width:34px; font-size:15px; line-height:34px; }
-    .ohsun-gauge-ready { font-size:10px; }
+    .cosmii-power-gauge-ready { font-size:10px; }
   }
   @media (prefers-reduced-motion:reduce) {
-    .ohsun-gauge-fill { transition:none; }
-    #ohsun-gauge.is-full { animation:none; }
+    .cosmii-power-gauge-fill { transition:none; }
+    #cosmii-power-gauge.is-full { animation:none; }
     #hud { transition:none; }
     .stat.danger .val,
     #btn-shop-ingame,
@@ -235,51 +235,6 @@
     background:linear-gradient(180deg,#ffd5ea 0%,#ded5ff 46%,#c9f1dc 100%);
     backdrop-filter:none;
     overflow:hidden;
-  }
-  .ohsun-menu-backdrop {
-    position:absolute; inset:0; z-index:1; overflow:hidden;
-    opacity:0; pointer-events:none;
-    transition:opacity .28s ease;
-  }
-  #title.show-menu .ohsun-menu-backdrop { opacity:1; }
-  .ohsun-menu-color { position:absolute; display:block; }
-  .ohsun-menu-color-yellow { inset:0 42% 75% 0; }
-  .ohsun-menu-color-green { inset:0 0 48% 70%; }
-  .ohsun-menu-color-pink { inset:70% 38% 0 0; }
-  .ohsun-menu-color-gray { inset:48% 0 0 84%; opacity:.22; }
-  .ohsun-menu-backdrop::after {
-    content:""; position:absolute; inset:0;
-    background:linear-gradient(104deg,transparent 29%,rgba(255,255,255,.17) 29% 52%,transparent 52%);
-  }
-  .ohsun-menu-character {
-    position:absolute; display:block; width:min(21vw,210px); height:auto;
-    object-fit:contain; opacity:1;
-    z-index:1;
-    user-select:none; -webkit-user-drag:none;
-  }
-  .ohsun-menu-character-top {
-    top:8px; left:50%; transform:translateX(-50%);
-    width:min(18vw,180px);
-  }
-  .ohsun-menu-character-left {
-    top:43%; left:10px; transform:translateY(-50%);
-  }
-  .ohsun-menu-character-right {
-    top:56%; right:10px; transform:translateY(-50%);
-  }
-  .ohsun-menu-character-bottom {
-    bottom:28px; left:50%; transform:translateX(-50%);
-    width:min(25vw,250px);
-  }
-  @media (max-width:480px) {
-    .ohsun-menu-character { width:84px; opacity:1; }
-    .ohsun-menu-character-top { top:6px; width:76px; }
-    .ohsun-menu-character-left { left:6px; top:44%; }
-    .ohsun-menu-character-right { right:6px; top:56%; }
-    .ohsun-menu-character-bottom { bottom:25px; width:100px; }
-  }
-  @media (prefers-reduced-motion:reduce) {
-    .ohsun-menu-backdrop { transition:none; }
   }
   /* 起動直後の Title.png 画面（黒背景のロードが明けたら出る） */
   .title-screen {
@@ -751,48 +706,6 @@
   #title .title-shop:active { box-shadow:0 2px 0 #8c72d6; }
   /* Title.png のロゴ帯だけを切り出してメニュー見出しにする（新規素材なし） */
   /* メニューの見出し。遊び方ラベルと同じピル形にそろえる */
-  .menu-title {
-    flex:0 0 auto;
-    align-self:center;
-    min-width:176px;
-    padding:8px 26px;
-    border-radius:18px;
-    background:linear-gradient(180deg,#ff9ac4,#ff6fa8);
-    color:#fff; font-size:22px; font-weight:bold;
-    letter-spacing:.06em;
-    text-shadow:0 2px 0 rgba(190,70,120,.35);
-    box-shadow:0 4px 0 #e55c9c, 0 8px 16px rgba(200,110,160,.28);
-  }
-  @media (max-width:480px) {
-    .menu-title { font-size:20px; padding:7px 22px; min-width:152px; }
-  }
-  @media (max-width:380px), (max-height:760px) {
-    .menu-title { font-size:18px; padding:6px 18px; min-width:132px; border-radius:15px; }
-  }
-  .title-meta {
-    display:flex; align-items:center; justify-content:center; gap:12px;
-    min-height:34px;
-    /* 下の howto-card はラベルが上辺にせり出すので、その分の間隔を確保 */
-    margin-bottom:10px;
-    color:#fff;
-  }
-  /* ベストスコアは背景が透けると読みにくいのでバッジにする */
-  #title .title-meta .best {
-    display:inline-flex; align-items:center; gap:6px;
-    padding:5px 16px;
-    border-radius:999px;
-    background:rgba(58,30,86,.62);
-    border:2px solid rgba(255,255,255,.42);
-    box-shadow:0 3px 10px rgba(60,30,90,.32);
-    color:#fff;
-    font-size:15px; font-weight:500; letter-spacing:.02em;
-    text-shadow:0 1px 3px rgba(40,15,70,.7);
-    white-space:nowrap;
-  }
-  #title .title-meta .best b {
-    color:#ffe375;
-    font-size:18px;
-  }
   @media (max-width:480px) {
     #title .title-menu {
       width:min(94%,380px);
@@ -1542,6 +1455,12 @@
     <button id="btn-mute" class="hud-btn" type="button" aria-label="音のオン・オフ">🔊</button>
     <button id="btn-shop-ingame" class="hud-btn" type="button" aria-label="ショップ">🛒</button>
     <button id="btn-pause" class="hud-btn" type="button" aria-label="一時停止">Ⅱ</button>
+    <div id="cosmii-power-gauge" hidden aria-label="Cosmiiパワー">
+      <span class="cosmii-power-gauge-icon" aria-hidden="true">✦</span>
+      <span class="cosmii-power-gauge-track"><span class="cosmii-power-gauge-fill"></span></span>
+      <span class="cosmii-power-gauge-value">0%</span>
+      <span class="cosmii-power-gauge-ready" aria-live="polite"></span>
+    </div>
   </div>
 
   <audio id="bgm" src="Asset/standard/audio/bgm.mp3" loop preload="auto"></audio>
@@ -1760,21 +1679,15 @@
 <script type="module">
 "use strict";
 import {
-  OHSUN_EVENT_CONFIG,
-  OHSUN_EVENT_STATES,
-  OhsunEventManager,
-  OhsunEventNotice,
-  OhsunGaugeView,
-  OhsunStageResult,
-  calculateOhsunHeroLayout,
-  createOhsunAppearance,
-  getOhsunPresentation,
-  createOhsunMenuBackdrop,
-  drawOhsunBackdrop,
-  drawOhsunSafeAccents,
+  COSMII_POWER_CONFIG,
+  COSMII_POWER_STATES,
+  CosmiiPowerManager,
+  CosmiiPowerResult,
+  calculateCosmiiPowerLayout,
+  getCosmiiPowerPresentation,
   findMostCommonColorCells,
-  isOhsunEventActive
-} from "./src/features/ohsun/index.js?v=20260917-1";
+  pickRandomCosmii
+} from "./src/features/cosmii-power.js";
 import {
   GAME_CONFIG,
   createStageStats,
@@ -1848,15 +1761,15 @@ let W=0, H=0, DPR=1;
 let cs=0, bx=0, by=0;       // cell size and board origin
 let layoutHudBottom=76;
 let cachedHudRect = null;
-let cachedOhsunHeroLayout = null;
-let cachedOhsunHeroLayoutKey = "";
+let cachedCosmiiPowerLayout = null;
+let cachedCosmiiPowerLayoutKey = "";
 let cachedBackgroundKey = "";
 const backgroundLayer = document.createElement("canvas");
 
 function invalidateRenderCaches(){
   cachedHudRect = null;
-  cachedOhsunHeroLayout = null;
-  cachedOhsunHeroLayoutKey = "";
+  cachedCosmiiPowerLayout = null;
+  cachedCosmiiPowerLayoutKey = "";
   cachedBackgroundKey = "";
 }
 
@@ -1865,23 +1778,17 @@ function getHudRectCached(){
   return cachedHudRect;
 }
 
-function getOhsunHeroLayoutCached(){
-  if(!ohsunCharacterImg || !cs) return null;
-  const hudElement=document.getElementById("hud");
-  const cinematic=hudElement.classList.contains("ohsun-cinematic");
-  const hudRect=getHudRectCached();
-  const key=[W,H,bx,by,cs,hudRect.top,hudRect.bottom,cinematic,ohsunCharacterImg.naturalWidth,ohsunCharacterImg.naturalHeight].join("|");
-  if(key!==cachedOhsunHeroLayoutKey){
-    cachedOhsunHeroLayout=calculateOhsunHeroLayout({
-      width:W,
-      height:H,
+function getCosmiiPowerLayoutCached(){
+  if(!cosmiiPowerCharacterImg || !cs) return null;
+  const key=[W,H,bx,by,cs,cosmiiPowerCharacterImg.naturalWidth,cosmiiPowerCharacterImg.naturalHeight].join("|");
+  if(key!==cachedCosmiiPowerLayoutKey){
+    cachedCosmiiPowerLayout=calculateCosmiiPowerLayout({
       board:{x:bx,y:by,width:cs*COLS,height:cs*ROWS},
-      safeTop:Math.max(8,cinematic ? hudRect.top+4 : hudRect.bottom+8),
-      imageAspect:ohsunCharacterImg.naturalWidth/ohsunCharacterImg.naturalHeight
+      imageAspect:cosmiiPowerCharacterImg.naturalWidth/cosmiiPowerCharacterImg.naturalHeight
     });
-    cachedOhsunHeroLayoutKey=key;
+    cachedCosmiiPowerLayoutKey=key;
   }
-  return cachedOhsunHeroLayout;
+  return cachedCosmiiPowerLayout;
 }
 
 function resize(){
@@ -1903,10 +1810,6 @@ function resize(){
 }
 window.addEventListener("resize", ()=>{
   resize();
-  if(ohsunManager.isBusy()){
-    setOhsunCinematic(false);
-    setOhsunCinematic(needsOhsunHudSpace());
-  }
 });
 resize();
 
@@ -2598,205 +2501,108 @@ function clearTransientStageEffects(){
 let practiceStep = 1;
 let practiceStarUsed = false;
 let tutorialCompleted = gameStorage.getItem(GAME_CONFIG.tutorial.completedStorageKey)==="1";
-let ohsunGaugeView = null;
-let ohsunMenuBackdrop = null;
-let ohsunEventNotice = null;
-const ohsunStageResult = new OhsunStageResult();
-let ohsunCharacterImages = [];
-let ohsunBackdropImg = null;
-let ohsunCharacterImg = null;
-let ohsunAppearance = null;
-let ohsunPreviousCharacterAsset = "";
-let ohsunLoadGeneration = 0;
-let ohsunTargetCells = new Set();
-let ohsunTargetType = null;
-let ohsunEffectScoreBefore = 0;
-let ohsunEffectRemovedCount = 0;
-let ohsunAvailabilityCheck = 0;
-let ohsunAnimationTime = 0;
-const ohsunSessionId = typeof crypto !== "undefined" && crypto.randomUUID
+let cosmiiPowerGauge = null;
+const cosmiiPowerResult = new CosmiiPowerResult();
+let cosmiiPowerCharacterImg = null;
+let cosmiiPowerTargetCells = new Set();
+let cosmiiPowerEffectScoreBefore = 0;
+let cosmiiPowerEffectRemovedCount = 0;
+let cosmiiPowerAnimationTime = 0;
+const cosmiiPowerSessionId = typeof crypto !== "undefined" && crypto.randomUUID
   ? crypto.randomUUID()
   : "session-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
 
-const ohsunManager = new OhsunEventManager(OHSUN_EVENT_CONFIG, {
+const cosmiiPowerManager = new CosmiiPowerManager(COSMII_POWER_CONFIG, {
   onGaugeChanged(value, announce){
-    if(ohsunGaugeView) ohsunGaugeView.setValue(value, announce);
+    if(!cosmiiPowerGauge) return;
+    cosmiiPowerGauge.querySelector(".cosmii-power-gauge-fill").style.width=(value/COSMII_POWER_CONFIG.gaugeMax*100)+"%";
+    cosmiiPowerGauge.querySelector(".cosmii-power-gauge-value").textContent=Math.round(value/COSMII_POWER_CONFIG.gaugeMax*100)+"%";
+    cosmiiPowerGauge.querySelector(".cosmii-power-gauge-ready").textContent=announce ? "COSMII POWER READY!" : "";
+    cosmiiPowerGauge.classList.toggle("is-full",announce);
+    cosmiiPowerGauge.classList.toggle("is-glowing",value>0);
   },
-  onGaugeFull(){
-    trackOhsunEvent("ohsun_gauge_full", { value: OHSUN_EVENT_CONFIG.gaugeMax });
-  },
+  onGaugeFull(){ trackCosmiiPowerEvent("gauge_full", { value:COSMII_POWER_CONFIG.gaugeMax }); },
   onEntry(){
     selected = null;
     hint = null;
     sndBell();
-    setOhsunCinematic(needsOhsunHudSpace());
-    state = "ohsun";
+    state = "cosmiiPower";
   },
   onEffectStart(){
     const target = findMostCommonColorCells(board, NTYPES);
-    ohsunTargetCells = target.cells;
-    ohsunTargetType = target.targetType;
-    ohsunEffectRemovedCount = target.count;
-    ohsunEffectScoreBefore = score;
-    trackOhsunEvent("ohsun_effect_start", { removed_piece_count: target.count, score_before: score });
+    cosmiiPowerTargetCells = target.cells;
+    cosmiiPowerEffectRemovedCount = target.count;
+    cosmiiPowerEffectScoreBefore = score;
+    trackCosmiiPowerEvent("effect_start", { removed_piece_count:target.count, score_before:score });
   },
   onActivate(){
-    activateOhsunBoardEffect();
+    activateCosmiiPowerBoardEffect();
   },
   onExit(){
-    state = "ohsun";
-    trackOhsunEvent("ohsun_effect_pieces_removed", { removed_piece_count: ohsunEffectRemovedCount });
-    trackOhsunEvent("ohsun_effect_score_gained", { value: score - ohsunEffectScoreBefore });
+    state = "cosmiiPower";
+    trackCosmiiPowerEvent("pieces_removed", { removed_piece_count:cosmiiPowerEffectRemovedCount });
+    trackCosmiiPowerEvent("score_gained", { value:score-cosmiiPowerEffectScoreBefore });
   },
   onComplete(){
-    ohsunStageResult.record({
-      piecesRemoved:ohsunEffectRemovedCount,
-      scoreGained:score-ohsunEffectScoreBefore
+    cosmiiPowerResult.record({
+      piecesRemoved:cosmiiPowerEffectRemovedCount,
+      scoreGained:score-cosmiiPowerEffectScoreBefore
     });
-    finishOhsunSequence();
+    finishCosmiiPowerSequence();
   }
 });
 
-function trackOhsunEvent(name, details = {}){
+function trackCosmiiPowerEvent(name, details = {}){
   const payload = {
     stage: level,
     level,
-    score_before: details.score_before ?? ohsunEffectScoreBefore,
+    score_before: details.score_before ?? cosmiiPowerEffectScoreBefore,
     score_after: score,
-    removed_piece_count: details.removed_piece_count ?? ohsunEffectRemovedCount,
-    session_id: ohsunSessionId,
-    event_version: OHSUN_EVENT_CONFIG.eventVersion
+    removed_piece_count: details.removed_piece_count ?? cosmiiPowerEffectRemovedCount,
+    session_id: cosmiiPowerSessionId
   };
   const value = Number.isFinite(details.value) ? details.value : payload.removed_piece_count;
-  gaEvent("addDesignEvent", name, value);
-  if(typeof CustomEvent === "function"){
-    window.dispatchEvent(new CustomEvent("ohsun-analytics", { detail:{ name, ...payload } }));
-  }
+  gaEvent("addDesignEvent", "cosmii_power_"+name, value);
 }
 
-function setOhsunCinematic(active){
-  document.getElementById("hud").classList.toggle("ohsun-cinematic", !!active);
+function initializeCosmiiPower(){
+  cosmiiPowerGauge=document.getElementById("cosmii-power-gauge");
+  cosmiiPowerManager.disable();
+}
+
+function resetCosmiiPowerForLevel(enabled,preserveStageResult=false){
+  cosmiiPowerCharacterImg=null;
+  cosmiiPowerTargetCells=new Set();
+  cosmiiPowerEffectRemovedCount=0;
+  cosmiiPowerEffectScoreBefore=0;
+  cosmiiPowerAnimationTime=0;
+  if(!preserveStageResult) cosmiiPowerResult.reset();
+  cosmiiPowerManager.reset(enabled);
+  if(cosmiiPowerGauge) cosmiiPowerGauge.hidden=!enabled;
+}
+
+function beginCosmiiPowerSequence(){
+  cosmiiPowerCharacterImg=pickRandomCosmii(readyCharas());
+  if(!cosmiiPowerCharacterImg) return false;
   invalidateRenderCaches();
+  return cosmiiPowerManager.begin();
 }
 
-function needsOhsunHudSpace(){
-  if(!ohsunCharacterImg || !cs) return false;
-  const layout=getOhsunHeroLayoutCached();
-  return !layout || (layout.orientation==="row" && Math.min(layout.character.width,layout.character.height)<140);
-}
-
-function loadOhsunCharacter(asset){
-  return new Promise(resolve=>{
-    const image = new Image();
-    image.onload = async()=>{
-      try{ if(image.decode) await image.decode(); }catch{}
-      resolve({ asset, image });
-    };
-    image.onerror = ()=>resolve(null);
-    image.src = asset;
-  });
-}
-
-async function initializeOhsunEvent(){
-  if(!isOhsunEventActive()){
-    ohsunManager.disable();
-    return;
-  }
-  const generation = ++ohsunLoadGeneration;
-  // 期間外ではここまで到達しないため、コラボ画像を読み込まない。
-  const loaded = (await Promise.all(
-    OHSUN_EVENT_CONFIG.characterAssets.map(loadOhsunCharacter)
-  )).filter(Boolean);
-  if(generation !== ohsunLoadGeneration || !isOhsunEventActive()) return;
-  if(!loaded.length){
-    disableOhsunRuntime();
-    return;
-  }
-  ohsunCharacterImages = loaded;
-  ohsunBackdropImg = loaded[0].image;
-  ohsunCharacterImg = ohsunBackdropImg;
-  if(!ohsunGaugeView) ohsunGaugeView = new OhsunGaugeView(document.getElementById("hud"), OHSUN_EVENT_CONFIG.gaugeMax);
-  if(!ohsunMenuBackdrop) ohsunMenuBackdrop = createOhsunMenuBackdrop(document.getElementById("title"), ohsunBackdropImg, OHSUN_EVENT_CONFIG.backdrop);
-  if(!ohsunEventNotice) ohsunEventNotice = new OhsunEventNotice(document.querySelector("#title .title-meta"), ohsunBackdropImg, OHSUN_EVENT_CONFIG);
-  resetOhsunForLevel(!practiceMode && state!=="title" && state!=="over" && state!=="practiceDone", true);
-  invalidateRenderCaches();
-}
-
-function disableOhsunRuntime(){
-  ohsunLoadGeneration++;
-  setOhsunCinematic(false);
-  ohsunManager.disable();
-  ohsunTargetCells.clear();
-  ohsunTargetType = null;
-  ohsunCharacterImages = [];
-  ohsunBackdropImg = null;
-  ohsunCharacterImg = null;
-  ohsunAppearance = null;
-  ohsunPreviousCharacterAsset = "";
-  if(ohsunGaugeView){
-    ohsunGaugeView.destroy();
-    ohsunGaugeView = null;
-  }
-  if(ohsunMenuBackdrop){
-    ohsunMenuBackdrop.destroy();
-    ohsunMenuBackdrop = null;
-  }
-  if(ohsunEventNotice){
-    ohsunEventNotice.destroy();
-    ohsunEventNotice = null;
-  }
-  if(state === "ohsun") state = "idle";
-}
-
-function resetOhsunForLevel(enabled,preserveStageResult=false){
-  setOhsunCinematic(false);
-  if(ohsunEventNotice) ohsunEventNotice.close({ restoreFocus:false });
-  const active = enabled && ohsunCharacterImages.length>0 && isOhsunEventActive();
-  ohsunAppearance = null;
-  ohsunCharacterImg = ohsunBackdropImg;
-  ohsunTargetCells = new Set();
-  ohsunTargetType = null;
-  ohsunEffectRemovedCount = 0;
-  ohsunEffectScoreBefore = 0;
-  ohsunAnimationTime = 0;
-  if(!preserveStageResult) ohsunStageResult.reset();
-  ohsunManager.reset(active);
-  if(ohsunGaugeView) ohsunGaugeView.root.hidden = !active;
-}
-
-function beginOhsunSequence(){
-  if(!ohsunCharacterImages.length || !isOhsunEventActive()) return false;
-  const appearance = createOhsunAppearance(OHSUN_EVENT_CONFIG, ohsunCharacterImages, {
-    previousAsset:ohsunPreviousCharacterAsset
-  });
-  if(!appearance?.image) return false;
-  ohsunAppearance = appearance;
-  ohsunCharacterImg = appearance.image;
-  ohsunPreviousCharacterAsset = appearance.asset;
-  invalidateRenderCaches();
-  return ohsunManager.begin();
-}
-
-function activateOhsunBoardEffect(){
-  if(ohsunManager.state !== OHSUN_EVENT_STATES.ACTIVATING) return;
-  if(!ohsunTargetCells.size){
-    ohsunManager.finishEffect();
+function activateCosmiiPowerBoardEffect(){
+  if(cosmiiPowerManager.state !== COSMII_POWER_STATES.ACTIVATING) return;
+  if(!cosmiiPowerTargetCells.size){
+    cosmiiPowerManager.finishEffect();
     return;
   }
   const reduceMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if(OHSUN_EVENT_CONFIG.screenShakeEnabled && !reduceMotion){
-    shakeT = Math.max(shakeT, 0.3);
-  }
+  if(COSMII_POWER_CONFIG.screenShakeEnabled && !reduceMotion) shakeT=Math.max(shakeT,0.3);
   sndColorClear();
-  startClear(new Set(ohsunTargetCells), [], { suppressOhsunGauge:true, source:"ohsun" });
+  startClear(new Set(cosmiiPowerTargetCells), [], { suppressCosmiiPowerGauge:true, source:"cosmii-power" });
 }
 
-function finishOhsunSequence(){
-  setOhsunCinematic(false);
-  trackOhsunEvent("ohsun_effect_complete", { value:score - ohsunEffectScoreBefore });
-  trackOhsunEvent("ohsun_event_played", { value:1 });
-  ohsunTargetCells = new Set();
-  ohsunTargetType = null;
+function finishCosmiiPowerSequence(){
+  trackCosmiiPowerEvent("complete", { value:score-cosmiiPowerEffectScoreBefore });
+  cosmiiPowerTargetCells=new Set();
   combo = 1;
   if(isStageComplete(currentStageRules,score,stageStats)){
     stageClear();
@@ -2811,7 +2617,7 @@ function finishOhsunSequence(){
   state = "idle";
 }
 
-initializeOhsunEvent();
+initializeCosmiiPower();
 const PRACTICE_SWAPS = {
   1: [[3,3],[3,4]],
   2: [[4,3],[3,3]],
@@ -3208,8 +3014,8 @@ function startClear(cells, spawns, clearMeta = {}){
   announceNewSpecials(spawns);
   const gain = n*GAME_CONFIG.scoring.pointsPerPiece*combo;
   score += gain;
-  if(!practiceMode && !clearMeta.suppressOhsunGauge){
-    ohsunManager.addCharge({
+  if(!practiceMode && !clearMeta.suppressCosmiiPowerGauge){
+    cosmiiPowerManager.addCharge({
       matchLengths:clearMeta.matchLengths || [],
       combo,
       specialRemovedCount:clearMeta.specialRemovedCount || 0
@@ -3262,8 +3068,8 @@ function afterFall(){
     resolveRuns(runs, null, null);
     return;
   }
-  if(ohsunManager.state===OHSUN_EVENT_STATES.ACTIVATING && ohsunManager.effectTriggered){
-    ohsunManager.finishEffect();
+  if(cosmiiPowerManager.state===COSMII_POWER_STATES.ACTIVATING && cosmiiPowerManager.effectTriggered){
+    cosmiiPowerManager.finishEffect();
     return;
   }
   combo=1;
@@ -3272,7 +3078,7 @@ function afterFall(){
     return;
   }
   if(isStageComplete(currentStageRules,score,stageStats)){ stageClear(); return; }
-  if(ohsunManager.isReady() && beginOhsunSequence()) return;
+  if(cosmiiPowerManager.isReady() && beginCosmiiPowerSequence()) return;
   if(!findAnyMove()){
     floats.push({x:W/2,y:H/2,txt:"SHUFFLE!",life:1.2,color:"#9b6fc9",size:26});
     buildBoard();
@@ -3360,7 +3166,7 @@ function startPracticeStep(step){
   hint = null;
   idleTime = 0;
   misses = 0; horror = false;
-  resetOhsunForLevel(false);
+  resetCosmiiPowerForLevel(false);
   resize();
   document.getElementById("practice-clear").classList.add("hidden");
   buildPracticeBoard(step);
@@ -3391,7 +3197,7 @@ function startLevel(){
   combo = 1;
   pausedState = null;
   misses = 0; horror = false;
-  resetOhsunForLevel(true);
+  resetCosmiiPowerForLevel(true);
   resize();
   pinchNotified = {};
   document.getElementById("pause").classList.add("hidden");
@@ -3461,7 +3267,7 @@ function renderStageResult(prefix, completed){
 function stageClear(){
   terminalAnimationUntil = performance.now() + 700;
   state="over";
-  if(ohsunGaugeView) ohsunGaugeView.root.hidden = true;
+  if(cosmiiPowerGauge) cosmiiPowerGauge.hidden = true;
 
   gaEvent("addProgressionEvent", "Complete", gaStageId());
   gaEvent("addDesignEvent", "stage:clear:score", score);
@@ -3498,7 +3304,7 @@ function gameOver(){
   gaEvent("addProgressionEvent", "Fail", gaStageId());
   gaEvent("addDesignEvent", "stage:fail:score", score);
   state="over";
-  resetOhsunForLevel(false,true);
+  resetCosmiiPowerForLevel(false,true);
   practiceMode = false;
   practiceStarUsed = false;
   stopBgm();
@@ -3508,7 +3314,7 @@ function gameOver(){
   document.getElementById("over-score").textContent = "ステージ"+level+" "+score+"てん";
   document.getElementById("over-best").textContent = "ベスト "+best;
   renderStageResult("over",false);
-  ohsunStageResult.render(
+  cosmiiPowerResult.render(
     document.querySelector("#gameover .panel"),
     document.querySelector("#gameover .menu-actions")
   );
@@ -3564,7 +3370,7 @@ function returnToTitle(){
   resetPointerInput();
   hint = null;
   idleTime = 0;
-  resetOhsunForLevel(false);
+  resetCosmiiPowerForLevel(false);
   document.getElementById("hud").style.display="none";
   document.getElementById("pause").classList.add("hidden");
   document.getElementById("clear").classList.add("hidden");
@@ -4659,10 +4465,7 @@ function renderDefaultGameBackground(g){
 }
 
 function drawGameBackground(){
-  const showOhsunBackdrop = OHSUN_EVENT_CONFIG.backdrop.enabled && !!ohsunBackdropImg;
-  const busy = showOhsunBackdrop && ohsunManager.isBusy();
-  const hudBottom = showOhsunBackdrop && !busy ? getHudRectCached().bottom : 0;
-  const key=[W,H,DPR,bx,by,cs,showOhsunBackdrop,busy,practiceMode,hudBottom].join("|");
+  const key=[W,H,DPR,bx,by,cs].join("|");
   if(key!==cachedBackgroundKey){
     backgroundLayer.width=Math.max(1,Math.ceil(W*DPR));
     backgroundLayer.height=Math.max(1,Math.ceil(H*DPR));
@@ -4671,28 +4474,7 @@ function drawGameBackground(){
     g.imageSmoothingEnabled=true;
     g.imageSmoothingQuality="high";
     g.clearRect(0,0,W,H);
-    if(showOhsunBackdrop){
-      const boardRect={ x:bx, y:by, width:cs*COLS, height:cs*ROWS };
-      drawOhsunBackdrop(g, {
-        width:W,
-        height:H,
-        board:boardRect,
-        config:OHSUN_EVENT_CONFIG.backdrop
-      });
-      if(!busy){
-        drawOhsunSafeAccents(g, {
-          width:W,
-          height:H,
-          board:boardRect,
-          hudBottom,
-          image:ohsunBackdropImg,
-          // チュートリアル中は盤面上の説明吹き出し用スペースを空ける。
-          avoidTop:practiceMode
-        });
-      }
-    } else {
-      renderDefaultGameBackground(g);
-    }
+    renderDefaultGameBackground(g);
     cachedBackgroundKey=key;
   }
   ctx.drawImage(backgroundLayer,0,0,W,H);
@@ -4756,17 +4538,12 @@ function frame(now){
 function update(dt){
   if(shakeT>0) shakeT-=dt;
   if(state==="paused") return;
-  ohsunAvailabilityCheck += dt;
-  if(ohsunAvailabilityCheck >= 1){
-    ohsunAvailabilityCheck = 0;
-    if(ohsunManager.state!==OHSUN_EVENT_STATES.DISABLED && !isOhsunEventActive()) disableOhsunRuntime();
-  }
-  ohsunManager.update(dt);
-  if(ohsunManager.isBusy()) ohsunAnimationTime += dt;
+  cosmiiPowerManager.update(dt);
+  if(cosmiiPowerManager.isBusy()) cosmiiPowerAnimationTime += dt;
   // Resolve an accepted move atomically: swaps, clears and falls finish before
   // the clock can decide the outcome. This prevents a scored clear from losing
   // to a timeout while its pieces are still falling.
-  if(!practiceMode && !ohsunManager.isBusy() && state==="idle"){
+  if(!practiceMode && !cosmiiPowerManager.isBusy() && state==="idle"){
     const before=Math.ceil(timeLeft);
     timeLeft=Math.max(0,timeLeft-dt);
     const now=Math.ceil(timeLeft);
@@ -4833,157 +4610,54 @@ function update(dt){
   }
 }
 
-const ohsunLightLayer=document.createElement("canvas");
-let cachedOhsunLightKey="";
-function paintOhsunLight(g,glowX,glowY,rotation){
-  const rayRadius = Math.max(W,H)*0.52;
-  g.save();
-  g.translate(glowX,glowY);
-  g.rotate(rotation);
-  g.fillStyle = "rgba(255,205,55,.18)";
-  const rayCount=REDUCED_EFFECTS ? 8 : 12;
-  for(let i=0;i<rayCount;i++){
-    g.rotate(Math.PI*2/rayCount);
-    g.beginPath();
-    g.moveTo(0,0);
-    g.lineTo(-rayRadius*0.08,-rayRadius);
-    g.lineTo(rayRadius*0.08,-rayRadius);
-    g.closePath();
-    g.fill();
-  }
-  g.restore();
-  const sunGlow = g.createRadialGradient(glowX,glowY,8,glowX,glowY,rayRadius*.56);
-  sunGlow.addColorStop(0,"rgba(255,247,170,.72)");
-  sunGlow.addColorStop(.42,"rgba(255,190,45,.26)");
-  sunGlow.addColorStop(1,"rgba(255,170,0,0)");
-  g.fillStyle = sunGlow;
-  g.fillRect(0,0,W,H);
-
-}
-function drawOhsunLight(glowX,glowY,reduceMotion){
-  if(!reduceMotion){
-    paintOhsunLight(ctx,glowX,glowY,ohsunAnimationTime*0.22);
-    return;
-  }
-  const key=[W,H,glowX,glowY,REDUCED_EFFECTS].join("|");
-  if(key!==cachedOhsunLightKey){
-    // Only the soft background light is cached, never the official artwork.
-    ohsunLightLayer.width=Math.max(1,Math.ceil(W));
-    ohsunLightLayer.height=Math.max(1,Math.ceil(H));
-    paintOhsunLight(ohsunLightLayer.getContext("2d"),glowX,glowY,0);
-    cachedOhsunLightKey=key;
-  }
-  ctx.drawImage(ohsunLightLayer,0,0,W,H);
-}
-
-function drawOhsunAnnouncement(eventState, progress, reduceMotion){
-  const copy=OHSUN_EVENT_CONFIG.announcement;
-  const entering=eventState===OHSUN_EVENT_STATES.ENTERING;
-  const exiting=eventState===OHSUN_EVENT_STATES.EXITING || eventState===OHSUN_EVENT_STATES.COOLDOWN;
-  const text=entering ? copy.entry : exiting ? copy.exit : copy.active;
-  const detail=entering ? copy.entryDetail : exiting ? copy.exitDetail : copy.activeDetail;
-  const width=Math.min(354,cs*COLS-12), height=86;
-  const x=bx+(cs*COLS-width)/2;
-  const bounce=reduceMotion || !entering ? 0 : Math.sin(Math.PI*progress)*8;
-  const y=by+Math.min(24,cs*.5)-bounce;
-  ctx.save();
-  // A separate system banner on the board, never a speech bubble or image overlay.
-  ctx.shadowBlur=0;
-  ctx.fillStyle="#6a2b17";
-  rounded(x,y+5,width,height,18);ctx.fill();
-  ctx.fillStyle=exiting ? "#fff4ce" : "#fff7df";
-  rounded(x,y,width,height,18);ctx.fill();
-  ctx.strokeStyle="#ffb82e";ctx.lineWidth=3;ctx.stroke();
-  ctx.textAlign="center";ctx.textBaseline="middle";
-  ctx.font=canvasFont(700,10);ctx.fillStyle="#995829";
-  ctx.fillText(copy.label,x+width/2,y+15);
-  ctx.font=canvasFont(900,Math.min(27,(width-26)/(text.length*.98)));
-  ctx.fillStyle="#b74519";
-  ctx.fillText(text,x+width/2,y+41);
-  ctx.font=canvasFont(700,Math.min(12,(width-24)/detail.length));ctx.fillStyle="#80502a";
-  ctx.fillText(detail,x+width/2,y+66);
-  // Small paper pieces belong to the event graphics, outside the official image.
-  if(!reduceMotion){
-    const colors=["#ffbd30","#ff709c","#67d7df","#fff6ba"];
-    for(let i=0;i<14;i++){
-      const phase=(ohsunAnimationTime*.5+i*.137)%1;
-      const px=bx+8+(i%2 ? cs*COLS-16 : 0)+Math.sin(i*2+phase*5)*5;
-      const py=by+phase*Math.min(cs*ROWS,240);
-      ctx.fillStyle=colors[i%colors.length];
-      ctx.fillRect(px,py,4+(i%3),7);
-    }
-  }
-  ctx.restore();
-}
-
-function drawOhsunOverlay(){
-  if(!ohsunCharacterImg || !ohsunManager.isBusy()) return;
-  const eventState = ohsunManager.state;
-  const timing = OHSUN_EVENT_CONFIG.timing;
-  const reduceMotion = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const cooldownProgress = Math.min(1, ohsunManager.elapsed / timing.cooldownSeconds);
-  const overlayAlpha = eventState===OHSUN_EVENT_STATES.COOLDOWN ? 1-cooldownProgress : 1;
+function drawCosmiiPowerOverlay(){
+  if(!cosmiiPowerCharacterImg || !cosmiiPowerManager.isBusy()) return;
+  const eventState=cosmiiPowerManager.state;
+  const timing=COSMII_POWER_CONFIG.timing;
+  const reduceMotion=typeof matchMedia==="function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const progress=Math.min(1,cosmiiPowerManager.elapsed/
+    (eventState===COSMII_POWER_STATES.ENTERING ? timing.entrySeconds : timing.exitSeconds));
+  const alpha=eventState===COSMII_POWER_STATES.COOLDOWN
+    ? 1-Math.min(1,cosmiiPowerManager.elapsed/timing.cooldownSeconds) : 1;
+  const layout=getCosmiiPowerLayoutCached();
+  if(!layout) return;
 
   ctx.save();
-  ctx.globalAlpha = 0.28 * overlayAlpha;
-  ctx.fillStyle = "#39233d";
+  ctx.globalAlpha=0.25*alpha;
+  ctx.fillStyle="#39233d";
   ctx.fillRect(0,0,W,H);
-  ctx.globalAlpha = overlayAlpha;
-
-  const heroLayout=getOhsunHeroLayoutCached();
-  if(!heroLayout){ ctx.restore(); return; }
-  const restingCharX=heroLayout.character.x+heroLayout.character.width/2;
-  const restingCharY=heroLayout.character.y+heroLayout.character.height/2;
-  drawOhsunLight(restingCharX,restingCharY,REDUCED_EFFECTS || reduceMotion);
-
-  if(eventState===OHSUN_EVENT_STATES.ACTIVATING && ohsunTargetCells.size){
+  ctx.globalAlpha=alpha;
+  if(eventState===COSMII_POWER_STATES.ACTIVATING){
     let index=0;
-    for(const key of ohsunTargetCells){
-      const [r,c]=key.split(",").map(Number);
-      const wave = Math.max(0, Math.min(1, (ohsunManager.elapsed-index*.022)*5));
-      const pulse = .35+.45*Math.sin(ohsunAnimationTime*12+index*.45);
-      ctx.strokeStyle = "rgba(255,188,20,"+(wave*(.55+pulse*.3))+")";
-      ctx.lineWidth = Math.max(3,cs*.08);
-      ctx.shadowColor = "#ffd84d";
-      ctx.shadowBlur = REDUCED_EFFECTS ? 4 : 9+10*pulse;
-      rounded(bx+c*cs+4,by+r*cs+4,cs-8,cs-8,10);
+    for(const key of cosmiiPowerTargetCells){
+      const [row,column]=key.split(",").map(Number);
+      const wave=Math.max(0,Math.min(1,(cosmiiPowerManager.elapsed-index*.022)*5));
+      const pulse=.35+.45*Math.sin(cosmiiPowerAnimationTime*12+index*.45);
+      ctx.strokeStyle="rgba(255,188,20,"+(wave*(.55+pulse*.3))+")";
+      ctx.lineWidth=Math.max(3,cs*.08);
+      ctx.shadowColor="#ffd84d";
+      ctx.shadowBlur=REDUCED_EFFECTS ? 4 : 9+10*pulse;
+      rounded(bx+column*cs+4,by+row*cs+4,cs-8,cs-8,10);
       ctx.stroke();
       index++;
     }
-    ctx.shadowBlur=0;
   }
-
-  const duration=eventState===OHSUN_EVENT_STATES.ENTERING ? timing.entrySeconds : timing.exitSeconds;
-  const progress=Math.min(1,ohsunManager.elapsed/duration);
-  const presentation=getOhsunPresentation(heroLayout,eventState,progress,reduceMotion);
-  drawOhsunAnnouncement(eventState,progress,reduceMotion);
-  ctx.save();
-  ctx.globalAlpha=1;
+  const presentation=getCosmiiPowerPresentation(layout,eventState,progress,reduceMotion);
+  ctx.shadowColor="rgba(255,220,110,.8)";
+  ctx.shadowBlur=REDUCED_EFFECTS ? 4 : 18;
+  ctx.drawImage(cosmiiPowerCharacterImg,presentation.x,presentation.y,presentation.width,presentation.height);
   ctx.shadowBlur=0;
-  ctx.shadowOffsetX=0;
-  ctx.shadowOffsetY=0;
-  ctx.filter="none";
-  // 公式画像は無加工で、縦横比を保った全体表示のみ行う。
-  if(eventState!==OHSUN_EVENT_STATES.COOLDOWN){
-    ctx.drawImage(ohsunCharacterImg,presentation.x,presentation.y,presentation.width,presentation.height);
-  }
-  ctx.restore();
-  ctx.restore();
-}
-
-function drawOhsunCopyright(){
-  const text=OHSUN_EVENT_CONFIG.copyrightNotice;
-  if(!text || !ohsunBackdropImg || !isOhsunEventActive() || state==="title") return;
-  ctx.save();
-  ctx.font=canvasFont(700,W<=480?10:12);
-  ctx.textAlign="right";
-  ctx.textBaseline="bottom";
-  ctx.lineJoin="round";
-  ctx.lineWidth=3;
-  ctx.strokeStyle="rgba(255,255,255,.9)";
-  ctx.strokeText(text,W-8,H-24);
-  ctx.fillStyle="#4d4036";
-  ctx.fillText(text,W-8,H-24);
+  const bannerWidth=Math.min(270,cs*COLS-16);
+  const bannerX=bx+(cs*COLS-bannerWidth)/2;
+  const bannerY=by+8;
+  ctx.fillStyle="rgba(255,255,255,.94)";
+  rounded(bannerX,bannerY,bannerWidth,48,14);ctx.fill();
+  ctx.strokeStyle="#ffb82e";ctx.lineWidth=2;ctx.stroke();
+  ctx.textAlign="center";ctx.textBaseline="middle";
+  ctx.font=canvasFont(800,15);ctx.fillStyle="#8b4d16";
+  ctx.fillText("COSMII POWER",bannerX+bannerWidth/2,bannerY+16);
+  ctx.font=canvasFont(700,11);ctx.fillStyle="#6b5b47";
+  ctx.fillText("いちばん多い色をまとめて消去",bannerX+bannerWidth/2,bannerY+34);
   ctx.restore();
 }
 
@@ -5103,10 +4777,9 @@ function render(){
   ctx.fillStyle="#ff9ec9";
   rounded(gx,gy,gw*Math.min(score/target,1),8,4); ctx.fill();
 
-  drawOhsunOverlay();
+  drawCosmiiPowerOverlay();
 
   ctx.restore();
-  drawOhsunCopyright();
 }
 
 ensureGameLoop();

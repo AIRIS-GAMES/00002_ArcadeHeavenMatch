@@ -9,8 +9,8 @@ const hooks = `
 window.regressionQA = {
   snapshot:()=>({state, coins, best, progress, timeLeft, selected, dragging:!!touchStart,
     nativeAppInactive, frames:gameFrameRequest, bgmWanted, practiceMode,
-    eventState:ohsunManager.state, characters:ohsunCharacterImages.length,
-    gaugeHidden:ohsunGaugeView?.root.hidden}),
+    eventState:cosmiiPowerManager.state, characters:charaImgs.length,
+    gaugeHidden:cosmiiPowerGauge.hidden}),
   start(practice=false){
     document.getElementById("title").classList.add("hidden");
     document.getElementById("hud").style.display="";
@@ -62,11 +62,8 @@ try {
         const errors=[],missing=[];
         page.on("pageerror",e=>errors.push(e.message));
         page.on("response",r=>{if(r.status()===404)missing.push(r.url());});
-        let release;
-        const imageGate = new Promise(resolve=>{release=resolve;});
         await page.route("**/*",async route=>{
           if(!route.request().url().startsWith(origin)){await route.abort();return;}
-          if(route.request().resourceType()==="image" && route.request().url().includes("/collaborations/ohsun/")) await imageGate;
           await route.continue();
         });
         await page.addInitScript(mode=>{
@@ -88,10 +85,9 @@ try {
         await page.goto(origin,{waitUntil:"domcontentloaded"});
         await page.waitForFunction(()=>!!window.regressionQA);
         await page.evaluate(()=>regressionQA.start(true));
-        release();
-        await page.waitForFunction(()=>regressionQA.snapshot().characters===7 && regressionQA.assets());
+        await page.waitForFunction(()=>regressionQA.snapshot().characters===5 && regressionQA.assets());
         let snapshot = await page.evaluate(()=>regressionQA.snapshot());
-        assert.equal(snapshot.eventState,"DISABLED","late assets must not enable collaboration during tutorial");
+        assert.equal(snapshot.eventState,"DISABLED","power must remain disabled during tutorial");
         assert.equal(snapshot.gaugeHidden,true);
         for(const field of ["coins","best","progress"]) assert.ok(Number.isFinite(snapshot[field]),field);
         if(storageMode==="normal"){

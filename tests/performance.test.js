@@ -131,24 +131,11 @@ test("special pieces reuse painted surfaces during movement and clearing", () =>
   assert.equal(paints,6);
 });
 
-test("stationary collaboration light is cached independently of official images", () => {
-  let gradients=0, copies=0;
-  const graphics={save(){},restore(){},translate(){},rotate(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},fill(){},fillRect(){},
-    createRadialGradient(){ gradients++; return {addColorStop(){}}; },drawImage(){ copies++; }};
-  const layer={getContext:()=>graphics};
-  const context=vm.createContext({document:{createElement:()=>layer},ctx:graphics,W:390,H:844,REDUCED_EFFECTS:true,ohsunAnimationTime:0});
-  vm.runInContext(html.slice(html.indexOf('const ohsunLightLayer='),html.indexOf('function drawOhsunOverlay(){')),context);
-  for(let i=0;i<120;i++) context.drawOhsunLight(100,150,true);
-  assert.equal(gradients,1); assert.equal(copies,120);
-  assert.equal(layer.width,390); assert.equal(layer.height,844);
-  context.W=844; context.H=390;
-  context.drawOhsunLight(100,150,true);
-  assert.equal(gradients,2);
-  context.drawOhsunLight(110,150,true);
-  assert.equal(gradients,3);
-  context.drawOhsunLight(110,150,false);
-  context.drawOhsunLight(110,150,false);
-  assert.equal(gradients,5);
+test("Cosmii power overlay uses the selected standard character and marks target cells", () => {
+  assert.match(html, /function drawCosmiiPowerOverlay\(\)/);
+  assert.match(html, /ctx\.drawImage\(cosmiiPowerCharacterImg,presentation\.x,presentation\.y,presentation\.width,presentation\.height\)/);
+  assert.match(html, /findMostCommonColorCells\(board, NTYPES\)/);
+  assert.match(html, /ctx\.stroke\(\);[\s\S]*?const presentation=getCosmiiPowerPresentation/);
 });
 
 test("board decoration is painted once until cell size or resolution changes", () => {
@@ -191,11 +178,11 @@ test("60fps・DPR 2・軽量エフェクトを常時適用し、切替UIを生�
   assert.match(html, /if\(shakeT>0 && !REDUCED_EFFECTS\)/);
 });
 
-test("背景とおっ！サン配置はキャッシュを利用する", () => {
+test("背景とCosmiiパワー配置はキャッシュを利用する", () => {
   assert.match(html, /const backgroundLayer = document\.createElement\("canvas"\)/);
   assert.match(html, /backgroundLayer\.width=Math\.max\(1,Math\.ceil\(W\*DPR\)\)/);
   assert.match(html, /function getHudRectCached\(\)/);
-  assert.match(html, /function getOhsunHeroLayoutCached\(\)/);
+  assert.match(html, /function getCosmiiPowerLayoutCached\(\)/);
   assert.match(html, /cachedBackgroundKey=key/);
 });
 

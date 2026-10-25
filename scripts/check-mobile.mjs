@@ -28,21 +28,22 @@ playSfx=function(key){if(qaAudioMode!=="bgm")qaPlaySfx(key);};
 let qaCharacterDraws=0;
 let qaTrigger=false;
 const qaUpdate=update;
-update=function(dt){const begin=performance.now();qaStates.add(state);if(qaTrigger){qaTrigger=false;ohsunManager.addCharge({matchLengths:[5,5,5,5]});beginOhsunSequence();}qaUpdate(dt);qaUpdates.push(performance.now()-begin);};
+update=function(dt){const begin=performance.now();qaStates.add(state);if(qaTrigger){qaTrigger=false;cosmiiPowerManager.addCharge({matchLengths:[5,5,5,5]});beginCosmiiPowerSequence();}qaUpdate(dt);qaUpdates.push(performance.now()-begin);};
 render=function(){const begin=performance.now();if(qaLastRender)qaIntervals.push(begin-qaLastRender);qaLastRender=begin;qaRender();qaFrames.push(performance.now()-begin);};
 const qaDrawImage=ctx.drawImage.bind(ctx);
-ctx.drawImage=function(img,...args){if(img===ohsunCharacterImg && ohsunManager.isBusy()) qaCharacterDraws++;return qaDrawImage(img,...args);};
+ctx.drawImage=function(img,...args){if(img===cosmiiPowerCharacterImg && cosmiiPowerManager.isBusy()) qaCharacterDraws++;return qaDrawImage(img,...args);};
 window.mobileQA={
-  ready:()=>ohsunCharacterImages.length===7 && charaImgs.every(imgReady),
+  ready:()=>charaImgs.length===5 && charaImgs.every(imgReady),
   start(){document.getElementById("title").classList.add("hidden");document.getElementById("hud").style.display="";level=1;startLevel();},
   begin(){qaTrigger=true;},
   presentation(phase,progress){
     stopGameLoop();
-    ohsunManager.state=phase;
-    ohsunManager.elapsed=progress*(phase==="ENTERING" ? OHSUN_EVENT_CONFIG.timing.entrySeconds : OHSUN_EVENT_CONFIG.timing.exitSeconds);
+    cosmiiPowerCharacterImg=readyCharas()[0];
+    cosmiiPowerManager.state=phase;
+    cosmiiPowerManager.elapsed=progress*(phase==="ENTERING" ? COSMII_POWER_CONFIG.timing.entrySeconds : COSMII_POWER_CONFIG.timing.exitSeconds);
     render();
   },
-  clear(){score=1605;ohsunStageResult.record({piecesRemoved:14,scoreGained:300});stageClear();},
+  clear(){score=1605;cosmiiPowerResult.record({piecesRemoved:14,scoreGained:300});stageClear();},
   howto(){document.getElementById("btn-howto-menu").click();},
   hud(value){score=value;target=120000;updateHUD();},
   audioReady:()=>[...sfx.values()].every(pool=>pool.every(e=>e.preload!=="auto"||e.readyState>=2)),
@@ -51,7 +52,7 @@ window.mobileQA={
   audioErrors:()=>qaAudioErrors,
   move(){target=1000000;currentStageRules={...currentStageRules,scoreTarget:target};timeLeft=600;const move=findAnyMove();if(!move)return null;let [r,c,r2,c2]=move;if(r===r2&&c===c2)c2=c+1<COLS?c+1:c-1;return [[bx+(c+.5)*cs,by+(r+.5)*cs],[bx+(c2+.5)*cs,by+(r2+.5)*cs]];},
   metrics(){const p95=a=>[...a].sort((a,b)=>a-b)[Math.floor(a.length*.95)];return {render:p95(qaFrames),update:p95(qaUpdates),interval:p95(qaIntervals),states:[...qaStates],score};},
-  snapshot(){return {state,viewport:{width:W,height:H},busy:ohsunManager.isBusy(),layout:getOhsunHeroLayoutCached(),draws:qaCharacterDraws,frames:qaFrames.length,canvasPixels:cv.width*cv.height,
+  snapshot(){return {state,viewport:{width:W,height:H},busy:cosmiiPowerManager.isBusy(),layout:getCosmiiPowerLayoutCached(),draws:qaCharacterDraws,frames:qaFrames.length,canvasPixels:cv.width*cv.height,
     p95:[...qaFrames].sort((a,b)=>a-b)[Math.floor(qaFrames.length*.95)],hud:getHudRectCached(),board:{x:bx,y:by,width:cs*COLS,height:cs*ROWS}};}
 };
 `;
@@ -218,7 +219,7 @@ try{
             assert.ok(box.x>=0 && box.y>=0 && box.right<=width+.5 && box.bottom<=height+.5,JSON.stringify(box));
             assert.ok(box.scroll<=1,JSON.stringify(box));
           }
-          assert.equal(await page.locator("#clear .result-stat, #clear .ohsun-result-summary, #clear-mission, #clear-coin-total").count(),0);
+          assert.equal(await page.locator("#clear .result-stat, #clear .cosmii-power-result, #clear-mission, #clear-coin-total").count(),0);
           await page.screenshot({path:`.artifacts/mobile/${name}-clear-${width}x${height}.png`});
           await page.locator("#btn-next").click();
           await page.waitForFunction(()=>document.getElementById("clear").classList.contains("hidden") && document.getElementById("hud-level").textContent==="2");
@@ -230,7 +231,7 @@ try{
         await page.waitForTimeout(500);
         try{await page.evaluate(()=>mobileQA.begin());}catch(error){errors.push(error.message);}
         await page.waitForFunction(()=>mobileQA.snapshot().draws>0,{},{timeout:5000}).catch(error=>errors.push(error.message));
-        if(process.env.OHSUN_PRESENTATION_TEST){
+        if(process.env.COSMII_POWER_PRESENTATION_TEST){
           for(const phase of ["ENTERING","EXITING"]){
             await page.evaluate(phase=>mobileQA.presentation(phase,.65),phase);
             await page.screenshot({path:`.artifacts/mobile/${name}-${width}x${height}-${phase}.png`});
@@ -245,10 +246,10 @@ try{
           await page.setViewportSize({width:320,height:568});
           await page.waitForFunction(()=>{
             const snapshot=mobileQA.snapshot();
-            return snapshot.viewport.width===320 && snapshot.viewport.height===568 && snapshot.layout?.character.height>=140;
+            return snapshot.viewport.width===320 && snapshot.viewport.height===568 && snapshot.layout?.height>=140;
           });
           const rotated=await page.evaluate(()=>mobileQA.snapshot());
-          assert.ok(rotated.layout.character.x+rotated.layout.character.width<=320);
+          assert.ok(rotated.layout.x+rotated.layout.width<=320);
           await page.screenshot({path:`.artifacts/mobile/${name}-rotated.png`});
         }
         await page.waitForFunction(()=>!mobileQA.snapshot().busy,{},{timeout:15000}).catch(error=>errors.push(error.message));
@@ -261,7 +262,7 @@ try{
           assert.ok(active.draws>0,"character must render during appearance");
           assert.ok(active.layout?.character.width>0);
           assert.ok(active.canvasPixels<=1500000,"canvas pixel budget must be bounded");
-          const character=active.layout.character;
+          const character=active.layout;
           assert.ok(character.x>=0 && character.y>=0 && character.x+character.width<=width && character.y+character.height<=height);
           assert.ok(character.width>=100 && character.height>=100,"mobile character must be visible at a useful size");
           assert.ok(!finished.busy,"event must finish");
