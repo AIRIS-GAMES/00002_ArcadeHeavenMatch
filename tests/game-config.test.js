@@ -21,23 +21,16 @@ test("共通設定には盤面や描画などゲーム共通項目だけを置�
   assert.equal(GAME_CONFIG.performance.reducedEffects, true);
 });
 
-test("序盤はスコアのみ、ステージ4以降は共通ミッションを設定する", () => {
-  assert.equal(getStageRules(1).mission.type, "NONE");
-  assert.equal(getStageRules(4).mission.type, "COLOR");
-  assert.equal(getStageRules(5).mission.type, "COMBO");
-  assert.equal(getStageRules(6).mission.type, "SPECIAL");
-  assert.equal(getStageRules(10).mission.type, "SPECIAL");
-});
-
-test("スコアとミッションの両方を満たした場合だけクリアする", () => {
-  const rules = getStageRules(4);
-  const stats = createStageStats();
-  assert.equal(isStageComplete(rules, rules.scoreTarget, stats), false);
-  stats.colorClears[rules.mission.pieceType] = rules.mission.target;
-  assert.equal(missionProgress(rules, stats).complete, true);
-  assert.equal(isStageComplete(rules, rules.scoreTarget - 1, stats), false);
-  assert.equal(isStageComplete(rules, rules.scoreTarget, stats), true);
-  assert.match(describeStageMission(rules, stats), /消す/);
+test("ミッションはなく、どのステージもスコア目標だけでクリアする", () => {
+  for (const level of [1, 4, 5, 6, 10, 25]) {
+    const rules = getStageRules(level);
+    assert.equal(rules.mission.type, "NONE");
+    const stats = createStageStats();
+    assert.equal(missionProgress(rules, stats).complete, true);
+    assert.equal(isStageComplete(rules, rules.scoreTarget - 1, stats), false);
+    assert.equal(isStageComplete(rules, rules.scoreTarget, stats), true);
+    assert.equal(describeStageMission(rules, stats), "スコア目標を達成しよう");
+  }
 });
 
 test("HTMLは共通設定、確定後の勝敗判定、初回チュートリアルを利用する", () => {
@@ -65,6 +58,6 @@ test("the how-to button opens the text guide instead of starting practice", () =
   assert.doesNotMatch(html, /btn-howto-menu[\s\S]{0,400}startPractice\(\)/);
   assert.doesNotMatch(html, /class="howto-dots"|class="howto-dot|setHowtoPage\(/);
   assert.match(html, /class="howto-one-page"/);
-  assert.match(html, /<div class="menu-title">メインメニュー<\/div>/);
+  assert.match(html, /<nav class="menu-nav"[\s\S]*?id="btn-howto-menu"[\s\S]*?<\/nav>/);
   assert.match(html, /#howto-guide \.howto-label \{[\s\S]*?background:transparent;[\s\S]*?box-shadow:none;/);
 });

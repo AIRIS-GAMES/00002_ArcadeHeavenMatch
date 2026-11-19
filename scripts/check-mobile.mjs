@@ -31,7 +31,7 @@ const qaUpdate=update;
 update=function(dt){const begin=performance.now();qaStates.add(state);if(qaTrigger){qaTrigger=false;cosmiiPowerManager.addCharge({matchLengths:[5,5,5,5]});beginCosmiiPowerSequence();}qaUpdate(dt);qaUpdates.push(performance.now()-begin);};
 render=function(){const begin=performance.now();if(qaLastRender)qaIntervals.push(begin-qaLastRender);qaLastRender=begin;qaRender();qaFrames.push(performance.now()-begin);};
 const qaDrawImage=ctx.drawImage.bind(ctx);
-ctx.drawImage=function(img,...args){if(img===cosmiiPowerCharacterImg && cosmiiPowerManager.isBusy()) qaCharacterDraws++;return qaDrawImage(img,...args);};
+ctx.drawImage=function(img,...args){if((img===cosmiiPowerCharacterImg || [...stickerCache.values()].some(entry=>entry.canvas===img)) && cosmiiPowerManager.isBusy()) qaCharacterDraws++;return qaDrawImage(img,...args);};
 window.mobileQA={
   ready:()=>charaImgs.length===5 && charaImgs.every(imgReady),
   start(){document.getElementById("title").classList.add("hidden");document.getElementById("hud").style.display="";level=1;startLevel();},

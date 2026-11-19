@@ -134,7 +134,7 @@ test("special pieces reuse painted surfaces during movement and clearing", () =>
 test("Cosmii power overlay uses the selected standard character and marks target cells", () => {
   assert.match(html, /function drawCosmiiPowerOverlay\(\)/);
   assert.match(html, /ctx\.drawImage\(cosmiiPowerCharacterImg,presentation\.x,presentation\.y,presentation\.width,presentation\.height\)/);
-  assert.match(html, /findMostCommonColorCells\(board, NTYPES\)/);
+  assert.match(html, /computeLeaderSkill\(leaderId, board, \{ typeCount:NTYPES \}\)/);
   assert.match(html, /ctx\.stroke\(\);[\s\S]*?const presentation=getCosmiiPowerPresentation/);
 });
 

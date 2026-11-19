@@ -25,6 +25,8 @@ test("match sizes, combo, and special clears charge the same power gauge", () =>
   assert.equal(calculatePowerCharge({ matchLengths:[4] }), 15);
   assert.equal(calculatePowerCharge({ matchLengths:[5,6], combo:2 }), 53);
   assert.equal(calculatePowerCharge({ specialRemovedCount:8 }), 16);
+  assert.equal(calculatePowerCharge({ matchLengths:[3], scale:1.5 }), 15);
+  assert.equal(calculatePowerCharge({ matchLengths:[3], scale:0 }), 10);
 });
 
 test("gauge caps at full and starts one power sequence", () => {

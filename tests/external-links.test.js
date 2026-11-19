@@ -4,7 +4,7 @@ import vm from "node:vm";
 import test from "node:test";
 
 const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
-const code = html.slice(html.indexOf("function openExternal(url){"), html.indexOf('document.getElementById("promo-banner").addEventListener'));
+const code = html.slice(html.indexOf("function openExternal(url){"), html.indexOf("//================ ほかのゲーム ================"));
 test("opening an external link with noopener does not navigate away from the game", () => {
   const calls = [];
   const location = { href: "capacitor://localhost" };

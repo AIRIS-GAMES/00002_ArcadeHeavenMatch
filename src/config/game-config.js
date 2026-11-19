@@ -50,23 +50,8 @@ export const PIECE_NAMES = Object.freeze(["ピンク", "ブルー", "グリー�
 export function getStageRules(level) {
   const safeLevel = Math.max(1, Math.floor(Number(level) || 1));
   const scoreTarget = GAME_CONFIG.stage.baseTarget + safeLevel * GAME_CONFIG.stage.targetPerLevel;
-  let mission = Object.freeze({ type: "NONE", target: 0 });
-
-  if (safeLevel > 3) {
-    if (safeLevel % 10 === 0) {
-      mission = Object.freeze({ type: "SPECIAL", target: Math.min(3, 1 + Math.floor(safeLevel / 10)) });
-    } else if (safeLevel % 3 === 1) {
-      mission = Object.freeze({
-        type: "COLOR",
-        pieceType: (safeLevel - 1) % GAME_CONFIG.board.pieceTypes,
-        target: Math.min(20, 10 + Math.floor(safeLevel / 10) * 2)
-      });
-    } else if (safeLevel % 3 === 2) {
-      mission = Object.freeze({ type: "COMBO", target: safeLevel >= 15 ? 3 : 2 });
-    } else {
-      mission = Object.freeze({ type: "SPECIAL", target: safeLevel >= 12 ? 2 : 1 });
-    }
-  }
+  // ミッションは廃止。クリア条件はスコア目標だけ（mission は互換のため常に NONE）。
+  const mission = Object.freeze({ type: "NONE", target: 0 });
 
   return Object.freeze({
     level: safeLevel,

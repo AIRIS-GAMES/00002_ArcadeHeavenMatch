@@ -23,7 +23,8 @@ export function calculatePowerCharge(details = {}, config = COSMII_POWER_CONFIG)
   }
   if (details.combo > 1) gain += (details.combo - 1) * config.chainBonusMultiplier;
   gain += Math.max(0, details.specialRemovedCount || 0) * config.specialPieceValue;
-  return gain;
+  const scale = Number(details.scale);
+  return scale > 0 ? gain * scale : gain;   // リーダーによるたまり方の倍率
 }
 
 export class CosmiiPowerManager {
